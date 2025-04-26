@@ -5,7 +5,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import HumanMessage
 from src.agent.state import State
 from src.agent.agent import run_agent, should_continue
-from src.agent.tools import fetch_dataset_info, execute_python, db_query_tool
+from src.agent.tools import fetch_dataset_info, execute_python, db_query_tool, install_python_packages, ask_ai
 
 class ScienceAgent:
     def __init__(self):
@@ -20,8 +20,14 @@ class ScienceAgent:
         # Add nodes
         graph_builder.add_node("agent", run_agent)
         
-        # Add tools node
-        tools_node = ToolNode(tools=[fetch_dataset_info, execute_python, db_query_tool])
+        # Add tools node with all available tools
+        tools_node = ToolNode(tools=[
+            fetch_dataset_info, 
+            execute_python, 
+            db_query_tool, 
+            install_python_packages,
+            ask_ai
+        ])
         graph_builder.add_node("tools", tools_node)
         
         # Add edges

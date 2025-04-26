@@ -2,7 +2,7 @@ from typing import Literal
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from src.agent.state import State
-from src.agent.tools import fetch_dataset_info, execute_python, db_query_tool
+from src.agent.tools import fetch_dataset_info, execute_python, db_query_tool, install_python_packages, ask_ai
 from src.helpers.fetch_local_data import fetch_local_data
 import os
 from dotenv import load_dotenv
@@ -43,6 +43,11 @@ The available tools are:
 - fetch_dataset_info: Get information about available datasets
 - execute_python: Run Python code for data analysis and visualization
 - db_query_tool: Run SQL queries against databases
+- install_python_packages: Install additional Python packages if needed for your analysis
+- ask_ai: Query specialized knowledge sources about relevant scientific concepts
+
+If you encounter an ImportError or ModuleNotFoundError when executing Python code, 
+use the install_python_packages tool to install the required packages, and then retry your code.
 """
 
 # OpenAI API Configuration
@@ -66,7 +71,7 @@ def create_agent():
     
     # Chain prompt with language model and bind tools
     agent = prompt | llm.bind_tools(
-        [fetch_dataset_info, execute_python, db_query_tool], 
+        [fetch_dataset_info, execute_python, db_query_tool, install_python_packages, ask_ai], 
     )
     
     return agent

@@ -1,4 +1,6 @@
 from src.agent.graph import ScienceAgent
+from src.python_executor.simple_python_executor import SimplePythonExecutor
+import os
 
 def print_message_history(messages):
     """Print the message history in a readable format."""
@@ -18,10 +20,32 @@ def print_message_history(messages):
                     else:
                         print(f"    - args: {tool_call['args']}")
 
+def initialize_environment():
+    """Initialize the Python executor environment."""
+    print("Initializing Python execution environment...")
+    
+    # Create plots directory
+    plots_dir = os.path.join(os.getcwd(), "plots")
+    os.makedirs(plots_dir, exist_ok=True)
+    
+    # Initialize Python executor with default packages
+    executor = SimplePythonExecutor(
+        venv_path=os.path.join(os.getcwd(), "venvs"),
+        plots_dir=plots_dir,
+        auto_install=True
+    )
+    
+    print("Python execution environment initialized.")
+    return executor
+
 def main():
     """Run the science agent."""
     print("=== Scientific Data Analysis Agent ===")
     print("This agent can analyze scientific datasets, create visualizations, and provide insights.")
+    
+    # Initialize the Python execution environment first
+    executor = initialize_environment()
+    
     print("Type 'exit' to quit.\n")
     
     # Create the agent
@@ -29,7 +53,6 @@ def main():
     thread_id = "science-session-1"
     
     while True:
-        # user_input = "Which descriptors correlate most with bioactivity?"
         user_input = input("\nEnter your research question: ")
         if user_input.lower() == 'exit':
             break
@@ -41,11 +64,12 @@ def main():
         
         # Print the conversation history
         print_message_history(result["messages"])
+    
+    # Clean up resources
+    executor.cleanup()
 
 if __name__ == "__main__":
     main()
-
-
 
 # def main():
 #     """Run the science agent with a predefined research question."""
