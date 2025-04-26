@@ -1,0 +1,44 @@
+Advanced Scientific Questions
+
+Structure-Activity Relationship Analysis:
+"Can you identify specific molecular descriptor patterns or thresholds that predict high bioactivity across different compound families? Use machine learning to build a predictive model and identify the most important features."
+Multi-Assay Success Prediction:
+"Develop a model that predicts which compounds will succeed in all three major assay types based on their molecular properties and experimental conditions. What are the minimal structural requirements for multi-assay success?"
+Experimental Condition Optimization:
+"What combination of pH, temperature, and exposure time maximizes bioactivity for compounds with different logP values? Can you identify optimal experimental windows for different molecular weight ranges?"
+Batch Effect Analysis:
+"Are there systematic differences in bioactivity outcomes between different labs or batch IDs that cannot be explained by compound properties alone? Use statistical methods to quantify and visualize these effects."
+
+
+Non-Linear Property Interactions:
+"Using advanced machine learning techniques, identify non-linear interactions between molecular descriptors (like logP and rotatable bonds) that might have synergistic effects on bioactivity beyond their individual contributions."
+result - unable to solve
+
+Cross-Dataset Validation:
+"How consistent are bioactivity predictions across the three related bioactivity datasets? Build a model on one set and test its generalizability to the others, identifying compounds that behave unexpectedly."
+result - solved with ease
+
+Threshold Optimization Problem:
+"What would be the optimal molecular descriptor thresholds to maximize assay success rates while maintaining diverse chemical space coverage? Frame this as a multi-objective optimization problem."
+result - solved with ease
+
+
+Time-Series Analysis:
+"For compounds tested under varying exposure times, can you develop a kinetic model that predicts the minimum exposure time needed to achieve threshold bioactivity based on molecular properties?"
+result - solved with ease
+
+Feature Engineering Challenge:
+"Create novel molecular descriptors (combinations of existing features) that better capture bioactivity potential than traditional descriptors alone. Validate using cross-validation techniques."
+result - solved with ease
+
+Aromatic Ring Influence Analysis:
+"Using the aromatic_rings data from set3, quantify how the number and position of aromatic rings influence bioactivity when controlling for other molecular properties. Does this effect vary based on experimental conditions?"
+result - solved with ease
+
+Outlier Compound Analysis:
+"Identify statistical outliers in the bioactivity data and perform detailed analysis on what makes these compounds succeed or fail against expectations. Are there unifying characteristics among positive outliers?"
+result - solved with ease
+
+Transfer Learning Application:
+"Using transfer learning techniques, build a model that leverages patterns from high-data compounds to make predictions about structurally similar compounds with limited experimental data?"
+result - unable to solve this

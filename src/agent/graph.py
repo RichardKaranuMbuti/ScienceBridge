@@ -6,6 +6,8 @@ from langchain_core.messages import HumanMessage
 from src.agent.state import State
 from src.agent.agent import run_agent, should_continue
 from src.agent.tools import fetch_dataset_info, execute_python, db_query_tool, install_python_packages, ask_ai
+from langchain_core.runnables import RunnableConfig
+
 
 class ScienceAgent:
     def __init__(self):
@@ -48,6 +50,8 @@ class ScienceAgent:
         # Compile the graph
         return graph_builder.compile(checkpointer=memory)
     
+    
+
     def run(self, user_input: str, thread_id: str = "default") -> Dict[str, Any]:
         """
         Run the agent with the given user input.
@@ -59,8 +63,11 @@ class ScienceAgent:
         Returns:
             The final state of the graph execution
         """
-        # Configure the thread ID for memory persistence
-        config = {"configurable": {"thread_id": thread_id}}
+        # Configure the thread ID for memory persistence and set recursion limit
+        config = RunnableConfig(
+            configurable={"thread_id": thread_id},
+            recursion_limit=50  # Set your desired recursion limit here
+        )
         
         # Create the initial state with the user's message
         initial_state = {
