@@ -1,2 +1,3 @@
 # ScienceBridge
-An agent that accelerates scientific research by autonomously navigating across distributed open science databases, generating hypotheses, and validating them through code
+
+An agent that accelerates scientific research by autonomously navigating across provided science datasets, generating hypotheses, and validating them through code

@@ -1,33 +1,47 @@
-from typing import Annotated
-from langchain_core.tools import tool, ToolException
-from langchain_core.messages import ToolMessage
-from langgraph.types import interrupt
-import json
-
-# Import your existing implementations
-from src.openai_tool.client import OpenAIClient
-from src.python_executor.simple_python_executor import SimplePythonExecutor
-
-# Initialize the Python executor once
-python_executor = SimplePythonExecutor()
+from langchain_core.tools import tool
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
 
 @tool
-def ask_ai(question: str) -> str:
+def fetch_dataset_info(dataset_path: str) -> str:
     """
-    Query specialized knowledge sources about scientific concepts.
+    Fetch information about available datasets.
     
     Args:
-        question: The scientific question to research
+        dataset_path: Path to the dataset directory
         
     Returns:
-        Detailed information about the scientific concept
+        Information about available datasets
     """
     try:
-        # Use your existing OpenAIClient implementation
-        answer = OpenAIClient.query(question)
-        return answer
+        datasets = {}
+        for file in os.listdir(dataset_path):
+            if file.endswith('.csv'):
+                file_path = os.path.join(dataset_path, file)
+                df = pd.read_csv(file_path)
+                datasets[file] = {
+                    'full_path': file_path,
+                    'columns': list(df.columns),
+                    'num_records': len(df)
+                }
+        return str(datasets)
     except Exception as e:
-        raise ToolException(f"Error querying AI: {str(e)}")
+        return f"Error fetching dataset info: {str(e)}"
+
+@tool
+def db_query_tool(query: str) -> str:
+    """
+    Execute a SQL query against the database and get back the result.
+    If the query is not correct, an error message will be returned.
+    """
+    try:
+        # This is a placeholder for SQL execution functionality
+        # For a real implementation, connect to your database here
+        return f"SQL Query result for: {query}"
+    except Exception as e:
+        return f"Error executing query: {str(e)}"
 
 @tool
 def execute_python(code: str) -> str:
@@ -38,54 +52,56 @@ def execute_python(code: str) -> str:
         code: Python code to execute (can include data analysis, visualization, etc.)
         
     Returns:
-        The output of the code execution, including any text output and references to generated visualizations
+        The output of the code execution
     """
     try:
-        # Execute the code using your SimplePythonExecutor
-        result = python_executor.execute_code(code)
+        # Create a local namespace for execution
+        local_namespace = {"pd": pd, "plt": plt, "sns": sns}
         
-        # Format the response in a readable way
-        response_parts = []
+        # Set non-interactive backend for matplotlib
+        plt.switch_backend('Agg')
         
-        # Add stdout if available
-        if result.get("stdout"):
-            response_parts.append(f"Output:\n{result['stdout']}")
+        # Create directory for plots if it doesn't exist
+        os.makedirs("plots", exist_ok=True)
         
-        # Add error information if execution failed
-        if not result["success"]:
-            error_msg = result.get("stderr", "Unknown error")
-            response_parts.append(f"Error:\n{error_msg}")
+        # Capture stdout
+        import io
+        from contextlib import redirect_stdout
         
-        # Add information about plots if they were generated
-        if "plots" in result and result["plots"]:
-            plot_paths = "\n".join(result["plots"])
-            response_parts.append(f"Generated plots:\n{plot_paths}")
+        stdout_capture = io.StringIO()
+        with redirect_stdout(stdout_capture):
+            # Execute the code
+            exec(code, globals(), local_namespace)
+            
+            # Save any matplotlib figures that were created
+            plot_files = []
+            for i, fig in enumerate(plt.get_fignums()):
+                figure = plt.figure(fig)
+                plot_path = f"plots/figure_{i}.png"
+                figure.savefig(plot_path)
+                plot_files.append(plot_path)
         
-        # Join all parts with double newlines
-        response_text = "\n\n".join(response_parts)
+        # Get the captured stdout
+        stdout_output = stdout_capture.getvalue()
         
-        # Return the formatted response
-        return response_text
+        # Build the response
+        response = []
+        if stdout_output:
+            response.append(f"Output:\n{stdout_output}")
+        
+        if plot_files:
+            response.append(f"Generated plots: {', '.join(plot_files)}")
+        
+        # Check for return values in the local namespace
+        result_vars = [f"{k} = {v}" for k, v in local_namespace.items() 
+                     if k not in ["pd", "plt", "sns"] and not k.startswith("_")]
+        
+        if result_vars:
+            response.append("Variables defined:\n" + "\n".join(result_vars[:5]))
+            
+        return "\n\n".join(response) or "Code executed successfully with no output."
     except Exception as e:
-        # Handle unexpected exceptions
         import traceback
-        error_details = traceback.format_exc()
-        return f"Error executing Python code: {str(e)}\n\nDetails:\n{error_details}"
-
-@tool
-def human_assistance(query: str) -> str:
-    """
-    Request expert input on complex scientific questions.
+        return f"Error executing Python code:\n{str(e)}\n\nTraceback:\n{traceback.format_exc()}"
     
-    Args:
-        query: The scientific question or issue requiring human expertise
-        
-    Returns:
-        Expert input provided by a human researcher
-    """
-    try:
-        # This will pause execution and wait for human input
-        response = interrupt({"query": query})
-        return response["data"]
-    except Exception as e:
-        raise ToolException(f"Error getting human assistance: {str(e)}")
+    
