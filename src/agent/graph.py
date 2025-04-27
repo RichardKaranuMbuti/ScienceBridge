@@ -5,7 +5,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import HumanMessage
 from src.agent.state import State
 from src.agent.agent import run_agent, should_continue
-from src.agent.tools import fetch_dataset_info, execute_python, db_query_tool, install_python_packages, ask_ai
+from src.agent.tools import fetch_dataset_info, execute_python, explain_graph, install_python_packages, ask_ai
 from langchain_core.runnables import RunnableConfig
 
 
@@ -26,7 +26,7 @@ class ScienceAgent:
         tools_node = ToolNode(tools=[
             fetch_dataset_info, 
             execute_python, 
-            db_query_tool, 
+            explain_graph,
             install_python_packages,
             ask_ai
         ])

@@ -24,14 +24,9 @@ def initialize_environment():
     """Initialize the Python executor environment."""
     print("Initializing Python execution environment...")
     
-    # Create plots directory
-    plots_dir = os.path.join(os.getcwd(), "plots")
-    os.makedirs(plots_dir, exist_ok=True)
-    
     # Initialize Python executor with default packages
     executor = SimplePythonExecutor(
         venv_path=os.path.join(os.getcwd(), "venvs"),
-        plots_dir=plots_dir,
         auto_install=True
     )
     

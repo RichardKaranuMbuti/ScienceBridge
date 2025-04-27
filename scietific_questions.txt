@@ -2,17 +2,24 @@ Advanced Scientific Questions
 
 Structure-Activity Relationship Analysis:
 "Can you identify specific molecular descriptor patterns or thresholds that predict high bioactivity across different compound families? Use machine learning to build a predictive model and identify the most important features."
+result - solved with ease
+
 Multi-Assay Success Prediction:
 "Develop a model that predicts which compounds will succeed in all three major assay types based on their molecular properties and experimental conditions. What are the minimal structural requirements for multi-assay success?"
+result - solved with ease
+
 Experimental Condition Optimization:
-"What combination of pH, temperature, and exposure time maximizes bioactivity for compounds with different logP values? Can you identify optimal experimental windows for different molecular weight ranges?"
+"What combination of pH, temperature, and exposure time maximizes bioactivity for compounds with different logP values? Can you identify optimal experimental windows for different molecular weight ranges?
+report your findings in numbers"
+result - solved with ease
+
 Batch Effect Analysis:
 "Are there systematic differences in bioactivity outcomes between different labs or batch IDs that cannot be explained by compound properties alone? Use statistical methods to quantify and visualize these effects."
-
+result - solved with ease
 
 Non-Linear Property Interactions:
-"Using advanced machine learning techniques, identify non-linear interactions between molecular descriptors (like logP and rotatable bonds) that might have synergistic effects on bioactivity beyond their individual contributions."
-result - unable to solve
+"Using a machine learning techniques, identify non-linear interactions between molecular descriptors (like logP and rotatable bonds) that might have synergistic effects on bioactivity beyond their individual contributions."
+result - solved with ease
 
 Cross-Dataset Validation:
 "How consistent are bioactivity predictions across the three related bioactivity datasets? Build a model on one set and test its generalizability to the others, identifying compounds that behave unexpectedly."

@@ -6,6 +6,7 @@ import os
 from typing import List, Optional
 from src.python_executor.simple_python_executor import SimplePythonExecutor
 from src.openai_tool.client import OpenAIClient
+from src.openai_tool.OpenAIVisionClient import OpenAIVisionClient
 
 # Initialize the Python executor once
 python_executor = SimplePythonExecutor(
@@ -124,3 +125,29 @@ def ask_ai(question: str) -> str:
         return answer
     except Exception as e:
         return f"Error querying AI: {str(e)}"
+
+@tool
+def explain_graph(query: str, 
+    image_paths: List[str]) -> str:
+    """
+    Explain the generated graph.
+    
+    Args:
+        graph_code: Code used to generate the graph
+        
+    Returns:
+        Explanation of the graph
+    """
+    try:
+        # Use your existing OpenAIClient implementation
+        explanation = OpenAIVisionClient(
+            query=query,
+            image_paths=image_paths,
+            system_prompt="You are a helpful visual analysis assistant. Describe what you observe in the images."
+        )
+        if not explanation:
+            return "No explanation provided."
+        print(explanation)
+        return explanation
+    except Exception as e:
+        return f"Error explaining graph: {str(e)}"
