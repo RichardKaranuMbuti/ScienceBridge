@@ -2,6 +2,7 @@ Advanced Scientific Questions
 
 Structure-Activity Relationship Analysis:
 "Can you identify specific molecular descriptor patterns or thresholds that predict high bioactivity across different compound families? Use machine learning to build a predictive model and identify the most important features."
+
 result - solved with ease
 
 Multi-Assay Success Prediction:
@@ -46,6 +47,4 @@ Outlier Compound Analysis:
 "Identify statistical outliers in the bioactivity data and perform detailed analysis on what makes these compounds succeed or fail against expectations. Are there unifying characteristics among positive outliers?"
 result - solved with ease
 
-Transfer Learning Application:
-"Using transfer learning techniques, build a model that leverages patterns from high-data compounds to make predictions about structurally similar compounds with limited experimental data?"
-result - unable to solve this
+
