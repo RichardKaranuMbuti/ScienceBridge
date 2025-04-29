@@ -99,6 +99,30 @@
         margin-right: 0.5rem;
         font-size: 1.2rem;
     }
+    
+    /* Modal enhancements */
+    #imageModal .modal-body img {
+        max-width: 100%;
+        max-height: 70vh;
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .carousel-item img {
+        object-fit: contain;
+        height: 60vh;
+    }
+    
+    .carousel-control-prev, 
+    .carousel-control-next {
+        background-color: rgba(0,0,0,0.3);
+        width: 8%;
+        border-radius: 0.25rem;
+    }
+    
+    #modal-insights-list .list-group-item {
+        border-left: 3px solid #0d6efd;
+    }
 </style>
 {% endblock %}
 
@@ -424,6 +448,9 @@
         $('#summary-content').empty();
         $('#next-steps-list').empty();
         
+        // Also clear the carousel
+        $('#carousel-inner').empty();
+        
         // Hide the entire results section
         $('#results-section').addClass('d-none');
     }
@@ -520,7 +547,7 @@
         const visualizationContainer = $('#visualization-container');
         visualizationContainer.empty();
         
-        // Also prepare the carousel for the modal
+        // Prepare the carousel for the modal
         const carouselInner = $('#carousel-inner');
         carouselInner.empty();
         
@@ -563,15 +590,22 @@
             
             visualizationContainer.append(vizCard);
             
-            // // Add to carousel
-            // carouselInner.append(`
-            //     <div class="carousel-item ${index === 0 ? 'active' : ''}" data-index="${index}">
-            //         <img src="${vizPath}" class="d-block w-100" alt="${description}">
-            //         <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-25 rounded p-2">
-            //             <h5>${description}</h5>
-            //         </div>
-            //     </div>
-            // `);
+            // Add to carousel - THIS WAS COMMENTED OUT IN ORIGINAL CODE
+            carouselInner.append(`
+                <div class="carousel-item ${index === 0 ? 'active' : ''}" data-index="${index}">
+                    <img src="${vizPath}" class="d-block w-100" alt="${description}">
+                    <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-2">
+                        <h5>${description}</h5>
+                    </div>
+                </div>
+            `);
+            
+            // Store visualization data as a data attribute for easy access
+            $(`.carousel-item[data-index="${index}"]`).data('visualization', {
+                path: vizPath,
+                description: description,
+                keyInsights: keyInsights
+            });
         });
         
         // Add event listeners for the thumbnail cards
@@ -632,6 +666,45 @@
         // Set active carousel item
         $('#visualizationCarousel .carousel-item').removeClass('active');
         $(`#visualizationCarousel .carousel-item[data-index="${index}"]`).addClass('active');
+        
+        // Add carousel event listeners for updating insights when sliding
+        $('#visualizationCarousel').on('slide.bs.carousel', function (e) {
+            const newIndex = $(e.relatedTarget).data('index');
+            const newViz = visualizations[newIndex];
+            
+            if (newViz) {
+                // Update title and insights for the new slide
+                let newDescription, newKeyInsights;
+                
+                if (typeof newViz === 'string') {
+                    newDescription = `Visualization ${newIndex + 1}`;
+                    newKeyInsights = ["Generated visualization"];
+                } else {
+                    newDescription = newViz.description || `Visualization ${newIndex + 1}`;
+                    newKeyInsights = newViz.key_insights || ["Generated visualization"];
+                }
+                
+                // Update modal content
+                $('#imageModalLabel').text(newDescription);
+                $('#modal-viz-title').text(newDescription);
+                
+                // Update insights
+                insightsList.empty();
+                newKeyInsights.forEach(insight => {
+                    insightsList.append(`<li class="list-group-item">${insight}</li>`);
+                });
+                
+                // Update download button
+                $('#download-visualization').off('click').on('click', function() {
+                    const link = document.createElement('a');
+                    link.href = newViz.path || newViz;
+                    link.download = `visualization-${newIndex+1}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+            }
+        });
         
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('imageModal'));

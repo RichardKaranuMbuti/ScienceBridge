@@ -47,22 +47,120 @@ def save_usage_data(run_id: str, usage_metadata: Dict[str, Any], analysis_id: Op
             logger.error("The 'usages' table does not exist. Please run database migrations.")
 
 
-def extract_final_result(agent_result: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract the final structured result from the agent output."""
-    # Check if messages exist in the result
-    if "messages" not in agent_result:
-        return {}
+def extract_final_result(agent_result):
+    """
+    Extract the final structured result from the agent output.
+    Handles various formats including JSON enclosed in code blocks.
+    """
+    import json
+    import re
     
-    # Find the last AI message with content
-    for message in reversed(agent_result["messages"]):
-        if message.__class__.__name__ == "AIMessage" and message.content:
-            try:
-                # Try to parse the content as JSON
-                return json.loads(message.content)
-            except json.JSONDecodeError:
-                continue
+    # If agent_result is already a dict with a 'messages' key, extract the messages
+    messages = agent_result.get('messages', []) if isinstance(agent_result, dict) else []
     
-    return {}
+    # Find the last AI message in the list
+    ai_messages = [msg for msg in messages if hasattr(msg, 'content') and getattr(msg, 'type', None) != 'tool']
+    
+    # If no AI messages found, return None
+    if not ai_messages:
+        return None
+    
+    # Get the content of the last AI message
+    last_message_content = ai_messages[-1].content if ai_messages else None
+    
+    if not last_message_content:
+        return None
+    
+    # Try to extract JSON from the message content
+    # First check if content is enclosed in code block with json formatter
+    json_code_pattern = r'```(?:json)?\s*([\s\S]*?)\s*```'
+    match = re.search(json_code_pattern, last_message_content)
+    
+    if match:
+        # Extract the content from the code block
+        extracted_content = match.group(1).strip()
+        # Make sure it starts with a curly brace (JSON object)
+        if extracted_content.startswith('{'):
+            json_str = extracted_content
+        else:
+            # If it doesn't start with {, try to find JSON object within the extracted content
+            json_obj_match = re.search(r'(\{[\s\S]*\})', extracted_content)
+            json_str = json_obj_match.group(1) if json_obj_match else extracted_content
+    else:
+        # If no code block found, try to extract the entire JSON object from the content
+        json_pattern = r'(\{[\s\S]*?\})(?:\s*$|\s*[^}])'
+        match = re.search(json_pattern, last_message_content)
+        if match:
+            json_str = match.group(1)
+        else:
+            # Last resort: try to find any JSON object in the content
+            json_str = last_message_content
+    
+    # Debug print
+    print(f"Attempting to parse JSON: {json_str[:100]}...")
+    
+    # Try to parse the extracted content as JSON
+    try:
+        parsed_json = json.loads(json_str)
+        
+        # Verify it has the expected structure (for validation)
+        required_fields = ['action_plan', 'decisions_and_justifications', 'observations', 
+                         'visualizations', 'summary', 'next_steps', 'conclusion']
+        
+        # Check if the parsed JSON has the required fields
+        missing_fields = [field for field in required_fields if field not in parsed_json]
+        if missing_fields:
+            print(f"Parsed JSON is missing required fields: {missing_fields}")
+            # Try to extract a more complete JSON object
+            complete_json_pattern = r'(\{[\s\S]*?"conclusion"[\s\S]*?\})'
+            match = re.search(complete_json_pattern, last_message_content)
+            if match:
+                try:
+                    complete_json = json.loads(match.group(1))
+                    return complete_json
+                except json.JSONDecodeError as e:
+                    print(f"Failed to parse complete JSON: {str(e)}")
+        
+        return parsed_json
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {str(e)}")
+        
+        # Cleanup the JSON string and try again
+        try:
+            # Fix common JSON syntax issues
+            cleaned_json_str = json_str.replace("'", "\"")  # Replace single quotes with double quotes
+            cleaned_json_str = re.sub(r',(\s*[\]}])', r'\1', cleaned_json_str)  # Remove trailing commas
+            parsed_json = json.loads(cleaned_json_str)
+            return parsed_json
+        except json.JSONDecodeError:
+            pass
+        
+        # As a final fallback, try to find any complete JSON structure in the entire message
+        try:
+            # This pattern looks for a complete JSON object with all required fields
+            complete_pattern = r'\{[\s\S]*?"action_plan"[\s\S]*?"decisions_and_justifications"[\s\S]*?"observations"[\s\S]*?"visualizations"[\s\S]*?"summary"[\s\S]*?"next_steps"[\s\S]*?"conclusion"[\s\S]*?\}'
+            match = re.search(complete_pattern, last_message_content)
+            if match:
+                try:
+                    return json.loads(match.group(0))
+                except json.JSONDecodeError:
+                    pass
+            
+            # If we still can't find a complete JSON, look for any JSON objects and check if they're valid
+            json_candidates = re.findall(r'(\{[\s\S]*?\})', last_message_content)
+            for candidate in sorted(json_candidates, key=len, reverse=True):  # Try the longest candidates first
+                try:
+                    result = json.loads(candidate)
+                    # Check if it has at least some of the required fields
+                    if isinstance(result, dict) and any(field in result for field in required_fields):
+                        return result
+                except json.JSONDecodeError:
+                    continue
+        except Exception as e:
+            print(f"Error in fallback JSON extraction: {str(e)}")
+        
+        print("All JSON extraction attempts failed")
+        return None
 
 
 def extract_usage_metadata(agent_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -133,7 +231,7 @@ async def run_agent(
     thread_id = f"science-session-{uuid.uuid4()}"
     try:
         agent_result = science_agent.run(query, thread_id)
-        # print(f"Agent result: {agent_result}")
+        print(f"Agent result: {agent_result}")
         
         # Extract the final structured result from agent output
         result = extract_final_result(agent_result)
@@ -142,16 +240,18 @@ async def run_agent(
             # If no structured result was found, use a default template
             result = {
                 "action_plan": [
-                    {"step": 1, "description": "Data processing completed"}
+                    {"step": 1, "description": "Process didnt complete"},
                 ],
                 "decisions_and_justifications": [
-                    {"decision": "Automated analysis", "justification": "Based on query requirements", "tool_used": "science_agent"}
+                    {"decision": "None",
+                     "justification": "None",
+                      "tool_used": "None"}
                 ],
-                "observations": ["Analysis completed"],
+                "observations": ["Analysis Failed"],
                 "visualizations": [],
-                "summary": "Analysis completed successfully.",
-                "next_steps": ["Review results"],
-                "conclusion": "Analysis completed with the provided data."
+                "summary": "Analysis wasnt completed.",
+                "next_steps": ["None"],
+                "conclusion": "Agent run failed or didnt complete."
             }
             
             # Check if there are any plot paths in agent_result

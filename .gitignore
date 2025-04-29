@@ -14,6 +14,17 @@ venvs/
 *.db
 *.sqlite
 
+# Ignore all CSV files
+*.csv
+
+# Ignore all PNG files
+*.png
+
+# Ignore all JPEG files
+*.jpeg
+*.jpg
+
+science_agent.db
 
 
 # Distribution / packaging

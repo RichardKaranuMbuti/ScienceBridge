@@ -14,6 +14,7 @@ from src.agent.tools import (
 from src.helpers.fetch_local_data import fetch_local_data
 from src.agent.prompts import SYSTEM_PROMPT
 import os
+import json
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -29,6 +30,7 @@ print(f"Dataset loaded from {path}: {dataset}")
 # OpenAI API Configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+
 model = "gpt-4o-2024-08-06" #"gpt-4o"
 
 def create_agent():
@@ -39,6 +41,7 @@ def create_agent():
         temperature=0,
         openai_api_key=OPENAI_API_KEY,
         max_tokens=2000,
+        
     )
     
     # Create prompt template with enhanced system message

@@ -113,8 +113,11 @@ If you encounter an ImportError or ModuleNotFoundError when executing Python cod
 use the install_python_packages tool to install the required packages, and then retry your code.
 Dont install heavy packages like tensorflow or pytorch, only install small packages like seaborn, 
 statsmodels, etc.
+
 IMPORTANT: Your final output must be a valid JSON object without any surrounding text, markdown 
-formatting, or code block indicators.
- The JSON should be directly consumable by an API.
-- Provide clear, evidence-backed conclusions with precise numerical values
+formatting, or code block indicators such as ```json  ```.
+ The JSON should be directly consumable by an API.Your final output MUST be a raw, valid JSON object with no surrounding text, no markdown code block indicators, and no explanatory content.
+The JSON should be directly parseable by standard JSON parsers without any preprocessing.
+Provide clear, evidence-backed conclusions with precise numerical values
+
 """
