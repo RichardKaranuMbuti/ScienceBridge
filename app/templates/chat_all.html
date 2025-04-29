@@ -2,43 +2,159 @@
 
 {% block title %}Agent Chat - ScienceBridge{% endblock %}
 
+{% block extra_css %}
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    code, pre {
+        font-family: 'Roboto Mono', monospace;
+    }
+    
+    .chat-container {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    .message {
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        border-radius: 0.5rem;
+    }
+    
+    .user-message {
+        background-color: #696f75e7;
+        margin-left: 20%;
+        border-left: 3px solid #0d6efd;
+    }
+    
+    .agent-message {
+        background-color: #f8f9fa;
+        margin-right: 20%;
+        border-left: 3px solid #6c757d;
+    }
+    
+    .viz-card {
+        transition: transform 0.2s;
+        cursor: pointer;
+    }
+    
+    .viz-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .viz-thumbnail {
+        height: 200px;
+        object-fit: contain;
+        background-color: #f8f9fa;
+    }
+    
+    .list-group-item {
+        border-left: 3px solid transparent;
+    }
+    
+    #action-plan-list .list-group-item {
+        border-left-color: #0d6efd;
+    }
+    
+    #decisions-list .list-group-item {
+        border-left-color: #6f42c1;
+    }
+    
+    #observations-list .list-group-item {
+        border-left-color: #20c997;
+    }
+    
+    #next-steps-list .list-group-item {
+        border-left-color: #fd7e14;
+    }
+    
+    .suggestion-prompt {
+        font-size: 0.9rem;
+        white-space: normal;
+        text-align: left;
+        transition: all 0.2s;
+    }
+    
+    .suggestion-prompt:hover {
+        background-color: #1f53c4;
+    }
+    
+    /* Better section headers */
+    .section-header {
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        color: #343a40;
+    }
+    
+    .section-icon {
+        margin-right: 0.5rem;
+        font-size: 1.2rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row mb-4">
     <div class="col">
-        <h1><i class="fas fa-robot me-2"></i>ScienceBridge Agent</h1>
+        <h1 class="d-flex align-items-center"><i class="fas fa-robot me-3 text-primary"></i>ScienceBridge Agent</h1>
         <p class="text-muted">Ask questions about scientific concepts and get AI-powered analysis</p>
     </div>
 </div>
 
 <div class="row">
     <div class="col-lg-4 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Suggestion Prompts</h5>
+        <div class="card shadow-sm">
+            <div class="card-header bg-light text-dark">
+                <h5 class="mb-0 d-flex align-items-center"><i class="fas fa-lightbulb text-warning me-2"></i>Suggestion Prompts</h5>
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
                     <button class="btn btn-outline-primary suggestion-prompt">
-                        Explain a scientific concept
+                        What are the key findings from this dataset?
                     </button>
                     <button class="btn btn-outline-primary suggestion-prompt">
-                        Compare and contrast two theories
+                        Is there an anomaly in the data?
                     </button>
                     <button class="btn btn-outline-primary suggestion-prompt">
-                        Generate a hypothesis about a phenomenon
+                        Can you suggest an interesting hypothesis based on the data?
                     </button>
                     <button class="btn btn-outline-primary suggestion-prompt">
-                        Recommend research methods for a study
+                        Conduct exploratory data analysis to identify patterns or correlations
                     </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0 d-flex align-items-center"><i class="fas fa-cog text-secondary me-2"></i>Settings</h5>
+            </div>
+            <div class="card-body">
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="show-visualizations-toggle" checked>
+                    <label class="form-check-label" for="show-visualizations-toggle">Show Visualizations</label>
+                </div>
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="show-detailed-analysis-toggle" checked>
+                    <label class="form-check-label" for="show-detailed-analysis-toggle">Show Detailed Analysis</label>
                 </div>
             </div>
         </div>
     </div>
     
     <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Agent Chat</h5>
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0 d-flex align-items-center"><i class="fas fa-comments text-primary me-2"></i>Agent Chat</h5>
             </div>
             <div class="card-body chat-container">
                 <div class="chat-messages" id="chat-messages">
@@ -47,7 +163,7 @@
                     </div>
                 </div>
                 
-                <form id="chat-form">
+                <form id="chat-form" class="mt-3">
                     <div class="input-group">
                         <input type="text" class="form-control" id="message-input" placeholder="Ask a scientific question...">
                         <button class="btn btn-primary" type="submit">
@@ -59,48 +175,95 @@
         </div>
         
         <div id="results-section" class="mt-4 d-none">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Analysis Results</h5>
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0 d-flex align-items-center"><i class="fas fa-chart-line text-success me-2"></i>Analysis Results</h5>
                 </div>
                 <div class="card-body">
-                    <div id="action-plan-section" class="mb-4">
-                        <h5>Action Plan</h5>
-                        <ol id="action-plan-list" class="list-group list-group-numbered mb-3">
-                            <!-- Action plan steps will be added here -->
-                        </ol>
-                    </div>
-                    
-                    <div id="visualization-section" class="mb-4">
-                        <h5>Visualizations</h5>
-                        <div class="graph-columns" id="visualization-container">
-                            <!-- Visualizations will be added here -->
-                        </div>
-                    </div>
-                    
-                    <div id="observations-section" class="mb-4">
-                        <h5>Observations</h5>
-                        <ul id="observations-list" class="list-group">
-                            <!-- Observations will be added here -->
-                        </ul>
-                    </div>
-                    
-                    <div id="summary-section" class="mb-4">
-                        <h5>Summary</h5>
-                        <div class="card">
+                    <div id="summary-section" class="mb-4 d-none">
+                        <h5 class="section-header"><i class="fas fa-file-alt section-icon text-info"></i>Summary</h5>
+                        <div class="card bg-light">
                             <div class="card-body" id="summary-content">
                                 <!-- Summary will be added here -->
                             </div>
                         </div>
                     </div>
                     
-                    <div id="next-steps-section">
-                        <h5>Recommended Next Steps</h5>
+                    <div id="action-plan-section" class="mb-4 d-none">
+                        <h5 class="section-header"><i class="fas fa-tasks section-icon text-primary"></i>Action Plan</h5>
+                        <ol id="action-plan-list" class="list-group list-group-numbered mb-3">
+                            <!-- Action plan steps will be added here -->
+                        </ol>
+                    </div>
+                    
+                    <div id="visualization-section" class="mb-4 d-none">
+                        <h5 class="section-header"><i class="fas fa-chart-bar section-icon text-purple"></i>Visualizations</h5>
+                        <div class="row" id="visualization-container">
+                            <!-- Visualizations will be added here -->
+                        </div>
+                    </div>
+                    
+                    <div id="decisions-section" class="mb-4 d-none">
+                        <h5 class="section-header"><i class="fas fa-balance-scale section-icon text-violet"></i>Decisions and Justifications</h5>
+                        <ul id="decisions-list" class="list-group">
+                            <!-- Decisions will be added here -->
+                        </ul>
+                    </div>
+                    
+                    <div id="observations-section" class="mb-4 d-none">
+                        <h5 class="section-header"><i class="fas fa-eye section-icon text-teal"></i>Observations</h5>
+                        <ul id="observations-list" class="list-group">
+                            <!-- Observations will be added here -->
+                        </ul>
+                    </div>
+                    
+                    <div id="next-steps-section" class="d-none">
+                        <h5 class="section-header"><i class="fas fa-arrow-right section-icon text-orange"></i>Recommended Next Steps</h5>
                         <ul id="next-steps-list" class="list-group">
                             <!-- Next steps will be added here -->
                         </ul>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalLabel">Visualization</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="visualizationCarousel" class="carousel slide" data-bs-ride="false" data-bs-interval="false">
+                    <div class="carousel-inner" id="carousel-inner">
+                        <!-- Carousel items will be added here -->
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#visualizationCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#visualizationCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+                <div class="mt-4">
+                    <h6 id="modal-viz-title" class="fw-bold mb-3"></h6>
+                    <div id="modal-key-insights">
+                        <h6 class="fw-bold">Key Insights:</h6>
+                        <ul id="modal-insights-list" class="list-group list-group-flush">
+                            <!-- Key insights will be added here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="download-visualization">Download</button>
             </div>
         </div>
     </div>
@@ -114,6 +277,8 @@
     $('.suggestion-prompt').on('click', function() {
         const promptText = $(this).text().trim();
         $('#message-input').val(promptText);
+        // Optional: Automatically submit the form when clicking a suggestion
+        // $('#chat-form').submit();
     });
     
     // Handle chat form submission
@@ -140,53 +305,68 @@
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
-                query: message
+                query: message,
+                show_visualizations: $('#show-visualizations-toggle').is(':checked'),
+                show_detailed_analysis: $('#show-detailed-analysis-toggle').is(':checked')
             }),
             success: function(response) {
                 removeTypingIndicator();
                 
-                // Check if it's the full structure or the agent result format
-                if (response.messages) {
-                    // Agent result format with messages array
-                    const lastAIMessage = response.messages.find(msg => msg.hasOwnProperty('content') && !msg.hasOwnProperty('query'));
-                    if (lastAIMessage) {
-                        addMessage(lastAIMessage.content, 'agent');
-                    } else {
-                        addMessage("I processed your request but couldn't generate a suitable response.", 'agent');
-                    }
-                    
-                    // Check if there are plot paths
-                    if (response.plot_paths && response.plot_paths.length > 0) {
-                        const visualizations = response.plot_paths.map((path, index) => {
-                            return {
-                                path: path,
-                                description: `Visualization ${index + 1}`,
-                                key_insights: ["Generated visualization"]
-                            };
-                        });
-                        
-                        displayResults({
-                            visualizations: visualizations
-                        });
-                    }
-                } else {
-                    // Regular format with direct properties
-                    if (response.conclusion) {
-                        addMessage(response.conclusion, 'agent');
-                    } else if (response.summary) {
-                        addMessage(response.summary, 'agent');
-                    }
-                    
-                    // Display full results
-                    displayResults(response);
-                }
+                // Process the response
+                processAgentResponse(response);
             },
-            error: function() {
+            error: function(xhr, status, error) {
                 removeTypingIndicator();
+                console.error("API Error:", error);
                 addMessage("I encountered an error while processing your request. Please try again.", 'agent');
             }
         });
     });
+    
+    // Process the agent's response
+    function processAgentResponse(response) {
+        console.log("API Response:", response);
+        
+        // Reset the results section first
+        resetResultsSections();
+        
+        // Handle different response formats
+        if (response.messages && Array.isArray(response.messages)) {
+            // Format with messages array
+            const lastAIMessage = response.messages.find(msg => 
+                msg.hasOwnProperty('content') && !msg.hasOwnProperty('query'));
+            
+            if (lastAIMessage) {
+                addMessage(lastAIMessage.content, 'agent');
+            } else {
+                addMessage("I processed your request but couldn't generate a suitable response.", 'agent');
+            }
+        } else if (response.conclusion || response.summary) {
+            // Format with direct conclusion/summary
+            const messageContent = response.conclusion || response.summary;
+            addMessage(messageContent, 'agent');
+        } else {
+            // Default message if no clear conclusion
+            addMessage("I've processed your request and generated the analysis results.", 'agent');
+        }
+        
+        // Handle plot paths if present
+        if (response.plot_paths && response.plot_paths.length > 0) {
+            const visualizations = response.plot_paths.map((path, index) => {
+                return {
+                    path: path,
+                    description: `Visualization ${index + 1}`,
+                    key_insights: ["Generated visualization"]
+                };
+            });
+            
+            // Update the response object with visualizations
+            response.visualizations = response.visualizations || visualizations;
+        }
+        
+        // Display all sections from the response
+        displayResultsSections(response);
+    }
     
     function addMessage(message, type) {
         const messageDiv = $(`
@@ -227,76 +407,99 @@
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    function displayResults(results) {
-        // Don't show results section if there are no results to display
-        let hasResultsToDisplay = false;
-        
-        // Reset visibility of all sections
+    function resetResultsSections() {
+        // Hide all sections
         $('#action-plan-section').addClass('d-none');
+        $('#decisions-section').addClass('d-none');
         $('#visualization-section').addClass('d-none');
         $('#observations-section').addClass('d-none');
         $('#summary-section').addClass('d-none');
         $('#next-steps-section').addClass('d-none');
         
-        // Check and display action plan
-        if (results.action_plan && results.action_plan.length > 0) {
-            displayActionPlan(results.action_plan);
-            hasResultsToDisplay = true;
-        }
+        // Clear all content
+        $('#action-plan-list').empty();
+        $('#decisions-list').empty();
+        $('#visualization-container').empty();
+        $('#observations-list').empty();
+        $('#summary-content').empty();
+        $('#next-steps-list').empty();
         
-        // Check and display visualizations
-        if (results.visualizations && results.visualizations.length > 0) {
-            displayVisualizations(results.visualizations);
-            hasResultsToDisplay = true;
-        }
+        // Hide the entire results section
+        $('#results-section').addClass('d-none');
+    }
+
+    function displayResultsSections(results) {
+        let hasResultsToDisplay = false;
         
-        // Check and display observations
-        if (results.observations && results.observations.length > 0) {
-            displayObservations(results.observations);
-            hasResultsToDisplay = true;
-        }
+        // Process all sections in the response
         
-        // Check and display summary
+        // Summary (prioritize showing this first if available)
         if (results.summary) {
             displaySummary(results.summary);
             hasResultsToDisplay = true;
         }
         
-        // Check and display next steps
-        if (results.next_steps && results.next_steps.length > 0) {
-            displayNextSteps(results.next_steps);
+        // Action Plan
+        if (results.action_plan && Array.isArray(results.action_plan) && results.action_plan.length > 0) {
+            displayActionPlan(results.action_plan);
             hasResultsToDisplay = true;
         }
         
-        // Check and display decisions and justifications
-        if (results.decisions_and_justifications && results.decisions_and_justifications.length > 0) {
+        // Visualizations
+        if (results.visualizations && Array.isArray(results.visualizations) && results.visualizations.length > 0) {
+            displayVisualizations(results.visualizations);
+            hasResultsToDisplay = true;
+        }
+        
+        // Decisions and Justifications
+        if (results.decisions_and_justifications && 
+            Array.isArray(results.decisions_and_justifications) && 
+            results.decisions_and_justifications.length > 0) {
             displayDecisions(results.decisions_and_justifications);
+            hasResultsToDisplay = true;
+        }
+        
+        // Observations
+        if (results.observations && Array.isArray(results.observations) && results.observations.length > 0) {
+            displayObservations(results.observations);
+            hasResultsToDisplay = true;
+        }
+        
+        // Next Steps
+        if (results.next_steps && Array.isArray(results.next_steps) && results.next_steps.length > 0) {
+            displayNextSteps(results.next_steps);
             hasResultsToDisplay = true;
         }
         
         // Only show results section if there's something to display
         if (hasResultsToDisplay) {
             $('#results-section').removeClass('d-none');
-        } else {
-            $('#results-section').addClass('d-none');
         }
     }
     
-    function displayDecisions(decisions) {
-        // Create a new section for decisions if it doesn't exist
-        if ($('#decisions-section').length === 0) {
-            const decisionsSection = $(`
-                <div id="decisions-section" class="mb-4">
-                    <h5>Decisions and Justifications</h5>
-                    <ul id="decisions-list" class="list-group">
-                    </ul>
-                </div>
-            `);
-            $('#action-plan-section').after(decisionsSection);
-        } else {
-            $('#decisions-section').removeClass('d-none');
-        }
+    function displayActionPlan(actionPlan) {
+        const actionPlanList = $('#action-plan-list');
+        actionPlanList.empty();
         
+        actionPlan.forEach(step => {
+            let stepDescription = step;
+            
+            // Handle both object format and string format
+            if (typeof step === 'object') {
+                stepDescription = step.description || `Step ${step.step}`;
+            }
+            
+            actionPlanList.append(`
+                <li class="list-group-item">
+                    ${stepDescription}
+                </li>
+            `);
+        });
+        
+        $('#action-plan-section').removeClass('d-none');
+    }
+    
+    function displayDecisions(decisions) {
         const decisionsList = $('#decisions-list');
         decisionsList.empty();
         
@@ -309,89 +512,162 @@
                 </li>
             `);
         });
-    }
-
-    function displayActionPlan(actionPlan) {
-        const actionPlanList = $('#action-plan-list');
-        actionPlanList.empty();
-        $('#action-plan-section').removeClass('d-none');
         
-        actionPlan.forEach(step => {
-            actionPlanList.append(`
-                <li class="list-group-item">
-                    ${step.description || step}
-                </li>
-            `);
-        });
+        $('#decisions-section').removeClass('d-none');
     }
 
-    // Update the displayVisualizations function to correctly handle the path
     function displayVisualizations(visualizations) {
         const visualizationContainer = $('#visualization-container');
         visualizationContainer.empty();
-        $('#visualization-section').removeClass('d-none');
+        
+        // Also prepare the carousel for the modal
+        const carouselInner = $('#carousel-inner');
+        carouselInner.empty();
         
         visualizations.forEach((viz, index) => {
-            const vizId = `viz-${index}`;
-            const detailsId = `viz-details-${index}`;
+            // Ensure we have a valid visualization object
+            let vizPath, description, keyInsights;
             
-            // Make sure we're using the exact path provided by the API
-            const vizPath = viz.path; // Use the path directly without modification
+            if (typeof viz === 'string') {
+                // Simple path format
+                vizPath = viz;
+                description = `Visualization ${index + 1}`;
+                keyInsights = ["Generated visualization"];
+            } else if (typeof viz === 'object') {
+                // Full object format
+                vizPath = viz.path || '';
+                description = viz.description || `Visualization ${index + 1}`;
+                keyInsights = viz.key_insights || ["Generated visualization"];
+            } else {
+                // Skip invalid formats
+                return;
+            }
             
+            // Skip if no path is available
+            if (!vizPath) return;
+            
+            // Create the thumbnail card
             const vizCard = $(`
-                <div class="graph-card mb-4">
-                    <div class="graph-container">
-                        <img src="${vizPath}" alt="Visualization ${index + 1}" class="graph-image">
-                        <div class="graph-details mt-3">
-                            <p class="mb-2"><strong>${viz.description}</strong></p>
-                            <p class="mb-2 toggle-details" data-bs-toggle="collapse" data-bs-target="#${detailsId}">
-                                <i class="fas fa-info-circle me-1"></i> Show Key Insights
-                            </p>
-                            <div id="${detailsId}" class="collapse">
-                                <ul class="list-group list-group-flush">
-                                    ${viz.key_insights.map(insight => `
-                                        <li class="list-group-item">${insight}</li>
-                                    `).join('')}
-                                </ul>
-                            </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card viz-card shadow-sm" data-index="${index}">
+                        <img src="${vizPath}" class="card-img-top viz-thumbnail" alt="${description}">
+                        <div class="card-body">
+                            <h6 class="card-title">${description}</h6>
+                            <button class="btn btn-sm btn-outline-primary view-enlarged">
+                                <i class="fas fa-search-plus me-1"></i> View Enlarged
+                            </button>
                         </div>
                     </div>
                 </div>
             `);
             
             visualizationContainer.append(vizCard);
+            
+            // // Add to carousel
+            // carouselInner.append(`
+            //     <div class="carousel-item ${index === 0 ? 'active' : ''}" data-index="${index}">
+            //         <img src="${vizPath}" class="d-block w-100" alt="${description}">
+            //         <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-25 rounded p-2">
+            //             <h5>${description}</h5>
+            //         </div>
+            //     </div>
+            // `);
         });
+        
+        // Add event listeners for the thumbnail cards
+        $('.viz-card').on('click', function() {
+            const index = $(this).data('index');
+            showVisualizationModal(visualizations, index);
+        });
+        
+        $('.view-enlarged').on('click', function(e) {
+            e.stopPropagation();
+            const index = $(this).closest('.viz-card').data('index');
+            showVisualizationModal(visualizations, index);
+        });
+        
+        // Show the visualization section
+        $('#visualization-section').removeClass('d-none');
+    }
+    
+    function showVisualizationModal(visualizations, index) {
+        // Ensure we have valid data
+        if (!Array.isArray(visualizations) || !visualizations[index]) return;
+        
+        const viz = visualizations[index];
+        let vizPath, description, keyInsights;
+        
+        if (typeof viz === 'string') {
+            vizPath = viz;
+            description = `Visualization ${index + 1}`;
+            keyInsights = ["Generated visualization"];
+        } else {
+            vizPath = viz.path || '';
+            description = viz.description || `Visualization ${index + 1}`;
+            keyInsights = viz.key_insights || ["Generated visualization"];
+        }
+        
+        // Set modal title
+        $('#imageModalLabel').text(description);
+        $('#modal-viz-title').text(description);
+        
+        // Set download button
+        $('#download-visualization').off('click').on('click', function() {
+            // Create a temporary link to download the image
+            const link = document.createElement('a');
+            link.href = vizPath;
+            link.download = `visualization-${index+1}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+        
+        // Set key insights
+        const insightsList = $('#modal-insights-list');
+        insightsList.empty();
+        keyInsights.forEach(insight => {
+            insightsList.append(`<li class="list-group-item">${insight}</li>`);
+        });
+        
+        // Set active carousel item
+        $('#visualizationCarousel .carousel-item').removeClass('active');
+        $(`#visualizationCarousel .carousel-item[data-index="${index}"]`).addClass('active');
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+        modal.show();
     }
 
     function displayObservations(observations) {
         const observationsList = $('#observations-list');
         observationsList.empty();
-        $('#observations-section').removeClass('d-none');
         
         observations.forEach(observation => {
             observationsList.append(`
                 <li class="list-group-item">
-                    <i class="fas fa-eye me-2 text-primary"></i>
+                    <i class="fas fa-eye me-2 text-teal"></i>
                     ${observation}
                 </li>
             `);
         });
+        
+        $('#observations-section').removeClass('d-none');
     }
 
     function displaySummary(summary) {
-        $('#summary-section').removeClass('d-none');
         $('#summary-content').html(`
             <div class="alert alert-info mb-0">
                 <i class="fas fa-file-alt me-2"></i>
                 ${summary}
             </div>
         `);
+        
+        $('#summary-section').removeClass('d-none');
     }
 
     function displayNextSteps(nextSteps) {
         const nextStepsList = $('#next-steps-list');
         nextStepsList.empty();
-        $('#next-steps-section').removeClass('d-none');
         
         nextSteps.forEach(step => {
             nextStepsList.append(`
@@ -401,7 +677,22 @@
                 </li>
             `);
         });
+        
+        $('#next-steps-section').removeClass('d-none');
     }
+    
+    // Toggle settings functionality
+    $('#show-visualizations-toggle, #show-detailed-analysis-toggle').on('change', function() {
+        // You can implement logic to dynamically show/hide sections based on toggles
+        // This is optional as we're already sending these preferences with the API request
+        if (!$('#show-visualizations-toggle').is(':checked')) {
+            $('#visualization-section').addClass('d-none');
+        }
+        
+        if (!$('#show-detailed-analysis-toggle').is(':checked')) {
+            $('#action-plan-section, #decisions-section').addClass('d-none');
+        }
+    });
 });
 </script>
 {% endblock %}

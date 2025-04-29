@@ -133,7 +133,7 @@ async def run_agent(
     thread_id = f"science-session-{uuid.uuid4()}"
     try:
         agent_result = science_agent.run(query, thread_id)
-        print(f"Agent result: {agent_result}")
+        # print(f"Agent result: {agent_result}")
         
         # Extract the final structured result from agent output
         result = extract_final_result(agent_result)
@@ -188,8 +188,9 @@ async def run_agent(
             for viz in result["visualizations"]:
                 if "path" in viz and viz["path"].startswith("src/data/"):
                     viz["path"] = viz["path"].replace("src/data/", "/data/")
-        
+        print("final result:", result)
         return result
+        
     
     except Exception as e:
         raise HTTPException(

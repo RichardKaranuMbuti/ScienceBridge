@@ -20,6 +20,7 @@ load_dotenv()
 # Define path to data directory
 path = 'src/data/uploads'
 
+image_path = 'src/data/graphs'
 # Load dataset from the path
 dataset = fetch_local_data(path)
 
@@ -71,7 +72,8 @@ def run_agent(state: State) -> Dict[str, Any]:
     response = agent.invoke({
         "messages": state["messages"],
         "dataset": dataset,
-        "path": path
+        "path": path,
+        "image_path": image_path
     })
     
     # Check if the agent is making a tool call or providing a final answer

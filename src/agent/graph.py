@@ -81,14 +81,14 @@ class ScienceAgent:
         )
         graph_builder.add_edge("tools", "agent")
         
-        # Add memory persistence
-        memory = MemorySaver()
+        # # Add memory persistence
+        # memory = MemorySaver() 
         
         # Create a store for tool annotations
         store = InMemoryStore()
         
         # Compile the graph with the store
-        return graph_builder.compile(checkpointer=memory, store=store)
+        return graph_builder.compile(checkpointer=None, store=store) #checkpointer=memory)
     
     def run(self, user_input: str, thread_id: str = "default") -> Dict[str, Any]:
         """
