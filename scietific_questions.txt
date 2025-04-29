@@ -47,4 +47,5 @@ Outlier Compound Analysis:
 "Identify statistical outliers in the bioactivity data and perform detailed analysis on what makes these compounds succeed or fail against expectations. Are there unifying characteristics among positive outliers?"
 result - solved with ease
 
+write me a report on how the number and position of aromatic rings influence bioactivity when controlling for other molecular properties
 

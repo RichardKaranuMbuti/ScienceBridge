@@ -1,0 +1,32 @@
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:            bioactivity   R-squared:                       0.557
+Model:                            OLS   Adj. R-squared:                  0.543
+Method:                 Least Squares   F-statistic:                     40.39
+Date:                Tue, 29 Apr 2025   Prob (F-statistic):           1.23e-31
+Time:                        03:21:16   Log-Likelihood:                -367.32
+No. Observations:                 200   AIC:                             748.6
+Df Residuals:                     193   BIC:                             771.7
+Df Model:                           6                                         
+Covariance Type:            nonrobust                                         
+===================================================================================
+                      coef    std err          t      P>|t|      [0.025      0.975]
+-----------------------------------------------------------------------------------
+const              -1.3508      1.341     -1.008      0.315      -3.995       1.294
+mol_weight          0.0234      0.004      6.430      0.000       0.016       0.031
+logP                0.8334      0.227      3.666      0.000       0.385       1.282
+num_h_donors       -0.2278      0.063     -3.600      0.000      -0.353      -0.103
+num_h_acceptors     0.2221      0.037      5.952      0.000       0.148       0.296
+rotatable_bonds     0.0740      0.033      2.276      0.024       0.010       0.138
+aromatic_rings      0.7579      0.076      9.968      0.000       0.608       0.908
+==============================================================================
+Omnibus:                        0.848   Durbin-Watson:                   1.956
+Prob(Omnibus):                  0.654   Jarque-Bera (JB):                0.781
+Skew:                           0.153   Prob(JB):                        0.677
+Kurtosis:                       2.975   Cond. No.                     3.74e+03
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+[2] The condition number is large, 3.74e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.

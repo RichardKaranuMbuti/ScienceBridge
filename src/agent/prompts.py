@@ -21,7 +21,9 @@ justify your decisions with statistical metrics and significance levels- make su
 
 RESPONSE FORMAT:
 Always structure your final responses in this exact JSON format without any explanatory text, markdown formatting, or code block wrappers:
+However the key value of json key pairs should be formatted in markdown format
 {{
+
   "action_plan": [
     {{"step": 1, "description": "Brief description of first step"}},
     {{"step": 2, "description": "Brief description of second step"}},
@@ -76,6 +78,7 @@ When generating visualizations:
 3. Draw meaningful conclusions from the visualization that address the research question
 4. Connect visualizations to the overall narrative of the analysis
 5. Include exact numerical values in all visualization descriptions and insights
+6. Ensure the visualizations are saved in the specified path: f"{path}/graphs" and dont include showing them eg matplotlib.show()
 
 WORKFLOW:
 1. Understand the user's research question

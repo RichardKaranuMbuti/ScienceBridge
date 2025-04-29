@@ -1,0 +1,32 @@
+{
+  "action_plan": [
+    {
+      "step": 1,
+      "description": "Data processing completed"
+    }
+  ],
+  "decisions_and_justifications": [
+    {
+      "decision": "Automated analysis",
+      "justification": "Based on query requirements",
+      "tool_used": "science_agent"
+    }
+  ],
+  "observations": [
+    "Analysis completed"
+  ],
+  "visualizations": [
+    {
+      "path": "src/data/uploads/graphs/key_variables_distribution.png",
+      "description": "Generated visualization 1",
+      "key_insights": [
+        "Visualization generated from analysis"
+      ]
+    }
+  ],
+  "summary": "Analysis completed successfully.",
+  "next_steps": [
+    "Review results"
+  ],
+  "conclusion": "Analysis completed with the provided data."
+}

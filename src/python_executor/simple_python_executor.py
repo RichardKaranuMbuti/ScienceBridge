@@ -1,4 +1,3 @@
-# src/python_executor/simple_python_executor.py
 import os
 import sys
 import venv
@@ -23,7 +22,8 @@ class SimplePythonExecutor:
         venv_path: Optional[str] = None, 
         packages: Optional[List[str]] = None, 
         auto_install: bool = True,
-        plots_dir: str = "plots"
+        plots_dir: str = "plots",
+        clear_plots_on_init: bool = False
     ):
         """
         Initialize the Python executor with a virtual environment.
@@ -33,6 +33,7 @@ class SimplePythonExecutor:
             packages: Additional packages to install beyond the defaults.
             auto_install: Whether to automatically install packages during initialization.
             plots_dir: Directory to save generated plots
+            clear_plots_on_init: Whether to clear all plots when initializing
         """
         # Set default venv path if not provided
         self.venv_path = venv_path or os.path.join(os.getcwd(), "venvs")
@@ -40,6 +41,10 @@ class SimplePythonExecutor:
         
         # Make sure plots directory exists
         os.makedirs(self.plots_dir, exist_ok=True)
+        
+        # Clear plots if requested
+        if clear_plots_on_init:
+            self.clear_plots_directory()
         
         # Default packages if none provided
         self.default_packages = [
@@ -130,16 +135,69 @@ class SimplePythonExecutor:
                 "error": traceback.format_exc()
             }
     
-    def execute_code(self, code: str) -> Dict[str, Any]:
+    def clear_plots_directory(self, specific_exec_id: Optional[str] = None):
+        """
+        Clear plots from the plots directory.
+        
+        Args:
+            specific_exec_id: If provided, only clear the subfolder for this execution ID.
+                             If None, clear all plots.
+        
+        Returns:
+            Dict with success status and message
+        """
+        try:
+            if specific_exec_id:
+                # Clear only a specific execution folder
+                exec_path = os.path.join(self.plots_dir, specific_exec_id)
+                if os.path.exists(exec_path):
+                    shutil.rmtree(exec_path)
+                    return {
+                        "success": True,
+                        "message": f"Cleared plots for execution ID: {specific_exec_id}"
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "message": f"No plots directory found for execution ID: {specific_exec_id}"
+                    }
+            else:
+                # Clear all plots by removing and recreating the directory
+                if os.path.exists(self.plots_dir):
+                    shutil.rmtree(self.plots_dir)
+                    os.makedirs(self.plots_dir, exist_ok=True)
+                    return {
+                        "success": True,
+                        "message": f"Cleared all plots from {self.plots_dir}"
+                    }
+                else:
+                    os.makedirs(self.plots_dir, exist_ok=True)
+                    return {
+                        "success": True,
+                        "message": f"Plots directory {self.plots_dir} was already empty"
+                    }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Error clearing plots directory: {str(e)}",
+                "error": traceback.format_exc()
+            }
+    
+    def execute_code(self, code: str, clear_previous_plots: bool = True) -> Dict[str, Any]:
         """
         Execute Python code in the virtual environment.
         
         Args:
             code: Python code to execute
+            clear_previous_plots: Whether to clear all plots before execution
             
         Returns:
             Dict with execution results, including stdout, stderr, and plot paths
         """
+        # Clear all previous plots if requested
+        if clear_previous_plots:
+            self.clear_plots_directory()
+            
         python_path = self._get_python_path()
         
         # Generate a unique identifier for this execution
@@ -247,12 +305,26 @@ atexit.register(_print_saved_files)
                 "execution_id": exec_id
             }
             
+            # Clean up temporary files for this execution
+            try:
+                os.remove(code_file)
+            except:
+                pass
+                
             # Clean up memory
             gc.collect()
             
             return result
         
         except Exception as e:
+            # Clean up if there was an error
+            try:
+                os.remove(code_file)
+                # Also clean up the plot directory for this execution since it failed
+                self.clear_plots_directory(specific_exec_id=exec_id)
+            except:
+                pass
+                
             return {
                 "success": False,
                 "stdout": "",
@@ -260,19 +332,32 @@ atexit.register(_print_saved_files)
                 "plot_paths": [],
                 "execution_id": exec_id
             }
-        finally:
-            # Clean up the temporary file
+    
+    def cleanup(self, clear_plots=False):
+        """
+        Clean up resources and temporary files.
+        
+        Args:
+            clear_plots: If True, also clear all plot directories
+        """
+        # Clean up temp files
+        temp_dir = os.path.join(os.getcwd(), "temp")
+        if os.path.exists(temp_dir):
             try:
-                os.remove(code_file)
+                shutil.rmtree(temp_dir)
             except:
                 pass
-    
-    def cleanup(self):
-        """Clean up resources and temporary files."""
-        # This method could be extended to clean up temp files, etc.
-        pass
+        
+        # Optionally clear plots directory
+        if clear_plots:
+            self.clear_plots_directory()
+        
+        # Clean up memory
+        gc.collect()
     
     def __del__(self):
         """Destructor to ensure cleanup."""
-        self.cleanup()
-        gc.collect()
+        try:
+            self.cleanup(clear_plots=False)  # Default to not clearing plots on destruction
+        except:
+            pass

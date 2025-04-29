@@ -18,10 +18,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Define path to data directory
-path = 'src/data'
+path = 'src/data/uploads'
 
 # Load dataset from the path
 dataset = fetch_local_data(path)
+
 print(f"Dataset loaded from {path}: {dataset}")
 
 # OpenAI API Configuration

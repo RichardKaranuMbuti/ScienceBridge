@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Chat - ScienceBridge{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-robot me-2"></i>ScienceBridge Agent</h1>
+        <p class="text-muted">Ask questions about scientific concepts and get AI-powered analysis</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Suggestion Prompts</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary suggestion-prompt">
+                        Explain a scientific concept
+                    </button>
+                    <button class="btn btn-outline-primary suggestion-prompt">
+                        Compare and contrast two theories
+                    </button>
+                    <button class="btn btn-outline-primary suggestion-prompt">
+                        Generate a hypothesis about a phenomenon
+                    </button>
+                    <button class="btn btn-outline-primary suggestion-prompt">
+                        Recommend research methods for a study
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Agent Chat</h5>
+            </div>
+            <div class="card-body chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message agent-message">
+                        <p>Hello! I'm the ScienceBridge Agent. I can help you explore scientific concepts, generate hypotheses, and answer questions related to scientific research. What would you like to discuss today?</p>
+                    </div>
+                </div>
+                
+                <form id="chat-form">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="message-input" placeholder="Ask a scientific question...">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-paper-plane me-1"></i> Send
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div id="results-section" class="mt-4 d-none">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Analysis Results</h5>
+                </div>
+                <div class="card-body">
+                    <div id="action-plan-section" class="mb-4">
+                        <h5>Action Plan</h5>
+                        <ol id="action-plan-list" class="list-group list-group-numbered mb-3">
+                            <!-- Action plan steps will be added here -->
+                        </ol>
+                    </div>
+                    
+                    <div id="visualization-section" class="mb-4">
+                        <h5>Visualizations</h5>
+                        <div class="graph-columns" id="visualization-container">
+                            <!-- Visualizations will be added here -->
+                        </div>
+                    </div>
+                    
+                    <div id="observations-section" class="mb-4">
+                        <h5>Observations</h5>
+                        <ul id="observations-list" class="list-group">
+                            <!-- Observations will be added here -->
+                        </ul>
+                    </div>
+                    
+                    <div id="summary-section" class="mb-4">
+                        <h5>Summary</h5>
+                        <div class="card">
+                            <div class="card-body" id="summary-content">
+                                <!-- Summary will be added here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="next-steps-section">
+                        <h5>Recommended Next Steps</h5>
+                        <ul id="next-steps-list" class="list-group">
+                            <!-- Next steps will be added here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+    // Handle suggestion prompts
+    $('.suggestion-prompt').on('click', function() {
+        const promptText = $(this).text().trim();
+        $('#message-input').val(promptText);
+    });
+    
+    // Handle chat form submission
+    $('#chat-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        const messageInput = $('#message-input');
+        const message = messageInput.val().trim();
+        
+        if (message === '') return;
+        
+        // Add user message to chat
+        addMessage(message, 'user');
+        
+        // Clear input
+        messageInput.val('');
+        
+        // Show typing indicator
+        addTypingIndicator();
+        
+        // Make API call to agent endpoint
+        $.ajax({
+            url: '/api/agent/run',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                query: message
+            }),
+            success: function(response) {
+                removeTypingIndicator();
+                
+                // Check if it's the full structure or the agent result format
+                if (response.messages) {
+                    // Agent result format with messages array
+                    const lastAIMessage = response.messages.find(msg => msg.hasOwnProperty('content') && !msg.hasOwnProperty('query'));
+                    if (lastAIMessage) {
+                        addMessage(lastAIMessage.content, 'agent');
+                    } else {
+                        addMessage("I processed your request but couldn't generate a suitable response.", 'agent');
+                    }
+                    
+                    // Check if there are plot paths
+                    if (response.plot_paths && response.plot_paths.length > 0) {
+                        const visualizations = response.plot_paths.map((path, index) => {
+                            return {
+                                path: path,
+                                description: `Visualization ${index + 1}`,
+                                key_insights: ["Generated visualization"]
+                            };
+                        });
+                        
+                        displayResults({
+                            visualizations: visualizations
+                        });
+                    }
+                } else {
+                    // Regular format with direct properties
+                    if (response.conclusion) {
+                        addMessage(response.conclusion, 'agent');
+                    } else if (response.summary) {
+                        addMessage(response.summary, 'agent');
+                    }
+                    
+                    // Display full results
+                    displayResults(response);
+                }
+            },
+            error: function() {
+                removeTypingIndicator();
+                addMessage("I encountered an error while processing your request. Please try again.", 'agent');
+            }
+        });
+    });
+    
+    function addMessage(message, type) {
+        const messageDiv = $(`
+            <div class="message ${type}-message">
+                <p>${message}</p>
+            </div>
+        `);
+        
+        $('#chat-messages').append(messageDiv);
+        scrollChatToBottom();
+    }
+
+    function addTypingIndicator() {
+        const indicator = $(`
+            <div class="message agent-message typing-indicator">
+                <div class="spinner-grow spinner-grow-sm text-primary me-1" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div class="spinner-grow spinner-grow-sm text-primary me-1" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div class="spinner-grow spinner-grow-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `);
+        
+        $('#chat-messages').append(indicator);
+        scrollChatToBottom();
+    }
+
+    function removeTypingIndicator() {
+        $('.typing-indicator').remove();
+    }
+
+    function scrollChatToBottom() {
+        const chatMessages = document.getElementById('chat-messages');
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function displayResults(results) {
+        // Don't show results section if there are no results to display
+        let hasResultsToDisplay = false;
+        
+        // Reset visibility of all sections
+        $('#action-plan-section').addClass('d-none');
+        $('#visualization-section').addClass('d-none');
+        $('#observations-section').addClass('d-none');
+        $('#summary-section').addClass('d-none');
+        $('#next-steps-section').addClass('d-none');
+        
+        // Check and display action plan
+        if (results.action_plan && results.action_plan.length > 0) {
+            displayActionPlan(results.action_plan);
+            hasResultsToDisplay = true;
+        }
+        
+        // Check and display visualizations
+        if (results.visualizations && results.visualizations.length > 0) {
+            displayVisualizations(results.visualizations);
+            hasResultsToDisplay = true;
+        }
+        
+        // Check and display observations
+        if (results.observations && results.observations.length > 0) {
+            displayObservations(results.observations);
+            hasResultsToDisplay = true;
+        }
+        
+        // Check and display summary
+        if (results.summary) {
+            displaySummary(results.summary);
+            hasResultsToDisplay = true;
+        }
+        
+        // Check and display next steps
+        if (results.next_steps && results.next_steps.length > 0) {
+            displayNextSteps(results.next_steps);
+            hasResultsToDisplay = true;
+        }
+        
+        // Check and display decisions and justifications
+        if (results.decisions_and_justifications && results.decisions_and_justifications.length > 0) {
+            displayDecisions(results.decisions_and_justifications);
+            hasResultsToDisplay = true;
+        }
+        
+        // Only show results section if there's something to display
+        if (hasResultsToDisplay) {
+            $('#results-section').removeClass('d-none');
+        } else {
+            $('#results-section').addClass('d-none');
+        }
+    }
+    
+    function displayDecisions(decisions) {
+        // Create a new section for decisions if it doesn't exist
+        if ($('#decisions-section').length === 0) {
+            const decisionsSection = $(`
+                <div id="decisions-section" class="mb-4">
+                    <h5>Decisions and Justifications</h5>
+                    <ul id="decisions-list" class="list-group">
+                    </ul>
+                </div>
+            `);
+            $('#action-plan-section').after(decisionsSection);
+        } else {
+            $('#decisions-section').removeClass('d-none');
+        }
+        
+        const decisionsList = $('#decisions-list');
+        decisionsList.empty();
+        
+        decisions.forEach(decision => {
+            decisionsList.append(`
+                <li class="list-group-item">
+                    <strong>${decision.decision}</strong>
+                    <p class="mb-1 mt-2 text-muted">Justification: ${decision.justification}</p>
+                    ${decision.tool_used ? `<small class="badge bg-secondary">Tool: ${decision.tool_used}</small>` : ''}
+                </li>
+            `);
+        });
+    }
+
+    function displayActionPlan(actionPlan) {
+        const actionPlanList = $('#action-plan-list');
+        actionPlanList.empty();
+        $('#action-plan-section').removeClass('d-none');
+        
+        actionPlan.forEach(step => {
+            actionPlanList.append(`
+                <li class="list-group-item">
+                    ${step.description || step}
+                </li>
+            `);
+        });
+    }
+
+    // Update the displayVisualizations function to correctly handle the path
+    function displayVisualizations(visualizations) {
+        const visualizationContainer = $('#visualization-container');
+        visualizationContainer.empty();
+        $('#visualization-section').removeClass('d-none');
+        
+        visualizations.forEach((viz, index) => {
+            const vizId = `viz-${index}`;
+            const detailsId = `viz-details-${index}`;
+            
+            // Make sure we're using the exact path provided by the API
+            const vizPath = viz.path; // Use the path directly without modification
+            
+            const vizCard = $(`
+                <div class="graph-card mb-4">
+                    <div class="graph-container">
+                        <img src="${vizPath}" alt="Visualization ${index + 1}" class="graph-image">
+                        <div class="graph-details mt-3">
+                            <p class="mb-2"><strong>${viz.description}</strong></p>
+                            <p class="mb-2 toggle-details" data-bs-toggle="collapse" data-bs-target="#${detailsId}">
+                                <i class="fas fa-info-circle me-1"></i> Show Key Insights
+                            </p>
+                            <div id="${detailsId}" class="collapse">
+                                <ul class="list-group list-group-flush">
+                                    ${viz.key_insights.map(insight => `
+                                        <li class="list-group-item">${insight}</li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+            
+            visualizationContainer.append(vizCard);
+        });
+    }
+
+    function displayObservations(observations) {
+        const observationsList = $('#observations-list');
+        observationsList.empty();
+        $('#observations-section').removeClass('d-none');
+        
+        observations.forEach(observation => {
+            observationsList.append(`
+                <li class="list-group-item">
+                    <i class="fas fa-eye me-2 text-primary"></i>
+                    ${observation}
+                </li>
+            `);
+        });
+    }
+
+    function displaySummary(summary) {
+        $('#summary-section').removeClass('d-none');
+        $('#summary-content').html(`
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-file-alt me-2"></i>
+                ${summary}
+            </div>
+        `);
+    }
+
+    function displayNextSteps(nextSteps) {
+        const nextStepsList = $('#next-steps-list');
+        nextStepsList.empty();
+        $('#next-steps-section').removeClass('d-none');
+        
+        nextSteps.forEach(step => {
+            nextStepsList.append(`
+                <li class="list-group-item">
+                    <i class="fas fa-arrow-right me-2 text-success"></i>
+                    ${step}
+                </li>
+            `);
+        });
+    }
+});
+</script>
+{% endblock %}

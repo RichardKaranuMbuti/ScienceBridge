@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}My Datasets - ScienceBridge{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="fas fa-database me-2"></i>My Research Datasets</h1>
+        <p class="text-muted">Manage your uploaded scientific datasets</p>
+    </div>
+    <div class="col-md-4 text-end align-self-center">
+        <a href="/upload" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Upload New Dataset
+        </a>
+    </div>
+</div>
+
+<div id="status-alert" class="alert d-none mb-4"></div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Filename</th>
+                        <th>Description</th>
+                        <th>Upload Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="files-table-body">
+                    <tr id="loading-row">
+                        <td colspan="5" class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading datasets...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="no-files-message" class="text-center p-5 d-none">
+            <i class="fas fa-file-excel science-icon"></i>
+            <h4>No datasets found</h4>
+            <p class="text-muted mb-4">Upload your research datasets to get started</p>
+            <a href="/upload" class="btn btn-primary">
+                <i class="fas fa-upload me-2"></i>Upload Dataset
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Edit File Modal -->
+<div class="modal fade" id="editFileModal" tabindex="-1" aria-labelledby="editFileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editFileModalLabel">Edit Dataset Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-file-form">
+                    <input type="hidden" id="edit-file-id">
+                    <div class="mb-3">
+                        <label for="edit-filename" class="form-label">Filename</label>
+                        <input type="text" class="form-control" id="edit-filename" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-description" class="form-label">Description</label>
+                        <textarea class="form-control" id="edit-description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save-file-changes">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteFileModal" tabindex="-1" aria-labelledby="deleteFileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteFileModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the dataset <strong id="delete-filename"></strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+                <input type="hidden" id="delete-file-id">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete">Delete Dataset</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        loadFiles();
+        
+        // Edit file
+        $('#save-file-changes').on('click', function() {
+            const fileId = $('#edit-file-id').val();
+            const description = $('#edit-description').val();
+            
+            $.ajax({
+                url: `/api/files/${fileId}`,
+                type: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    description: description
+                }),
+                success: function(response) {
+                    $('#editFileModal').modal('hide');
+                    showStatus('Dataset updated successfully', 'success');
+                    loadFiles();
+                },
+                error: function(error) {
+                    showStatus('Failed to update dataset', 'danger');
+                }
+            });
+        });
+        
+        // Delete file
+        $('#confirm-delete').on('click', function() {
+            const fileId = $('#delete-file-id').val();
+            
+            $.ajax({
+                url: `/api/files/${fileId}`,
+                type: 'DELETE',
+                success: function() {
+                    $('#deleteFileModal').modal('hide');
+                    showStatus('Dataset deleted successfully', 'success');
+                    loadFiles();
+                },
+                error: function() {
+                    showStatus('Failed to delete dataset', 'danger');
+                }
+            });
+        });
+        
+        function loadFiles() {
+            $.ajax({
+                url: '/api/files/',
+                type: 'GET',
+                success: function(response) {
+                    $('#loading-row').remove();
+                    
+                    if (response.length === 0) {
+                        $('#no-files-message').removeClass('d-none');
+                        return;
+                    }
+                    
+                    $('#no-files-message').addClass('d-none');
+                    const tableBody = $('#files-table-body');
+                    tableBody.empty();
+                    
+                    response.forEach(file => {
+                        const row = `
+                            <tr class="file-item">
+                                <td>${file.id}</td>
+                                <td>${file.original_filename}</td>
+                                <td>${file.description || '<em>No description</em>'}</td>
+                                <td>${new Date(file.created_at).toLocaleString()}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary edit-file" data-id="${file.id}" data-filename="${file.original_filename}" data-description="${file.description || ''}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-file" data-id="${file.id}" data-filename="${file.original_filename}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    <a href="/chat?file_id=${file.id}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-brain"></i> Analyze
+                                    </a>
+                                </td>
+                            </tr>
+                        `;
+                        tableBody.append(row);
+                    });
+                    
+                    // Setup edit button handlers
+                    $('.edit-file').on('click', function() {
+                        const id = $(this).data('id');
+                        const filename = $(this).data('filename');
+                        const description = $(this).data('description');
+                        
+                        $('#edit-file-id').val(id);
+                        $('#edit-filename').val(filename);
+                        $('#edit-description').val(description);
+                        
+                        $('#editFileModal').modal('show');
+                    });
+                    
+                    // Setup delete button handlers
+                    $('.delete-file').on('click', function() {
+                        const id = $(this).data('id');
+                        const filename = $(this).data('filename');
+                        
+                        $('#delete-file-id').val(id); 
+                        $('#delete-filename').text(filename);
+                        
+                        $('#deleteFileModal').modal('show');
+                    });
+                },
+                error: function() {
+                    $('#loading-row').html(`
+                        <td colspan="5" class="text-center text-danger">
+                            <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
+                            <p>Failed to load datasets. Please try again later.</p>
+                        </td>
+                    `);
+                }
+            });
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = $('#status-alert');
+            statusDiv.removeClass('d-none alert-success alert-danger alert-info')
+                    .addClass('alert-' + type)
+                    .html(message);
+                    
+            setTimeout(function() {
+                statusDiv.addClass('d-none');
+            }, 5000);
+        }
+    });
+</script>
+{% endblock %}
