@@ -8,6 +8,10 @@ on:
       - "**.md"
       - ".github/**"
 
+# Add this permissions block to grant write access to the repository
+permissions:
+  contents: write
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
