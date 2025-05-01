@@ -4,7 +4,7 @@ ScienceBridge is an AI agent that accelerates scientific research by autonomousl
 
 ![ScienceBridge Banner](banner.png)
 
-## Design
+## System Design
 
 ![System Design](science_bridge_agent_diagram.png)
 
