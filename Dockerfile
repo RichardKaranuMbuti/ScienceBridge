@@ -23,16 +23,20 @@ RUN pip install --upgrade pip && \
 # Copy project files
 COPY . .
 
-# Create .dockerignore file to ignore the same files as in .gitignore
+# Create .dockerignore file
 RUN echo "*.csv\n*.png\n*.jpeg\n*.jpg\nscience_agent.db\n.env\nvenv/\nvenvs/\ndatasets/" > .dockerignore
 
 # Create startup script
 COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
-# Expose port
-EXPOSE 8000
+# Create a non-root user and switch to it
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
 
+# Expose port
+EXPOSE 8000 
 
 # Use the startup script as entrypoint
 ENTRYPOINT ["./start.sh"]

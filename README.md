@@ -1,8 +1,12 @@
 # ScienceBridge
 
-ScienceBridge is an AI agent that accelerates scientific research by autonomously analyzing datasets, generating hypotheses, and validating them through code with a single prompt.
+ScienceBridge is an AI agent that accelerates scientific research by autonomously analyzing datasets, evaluating hypotheses, and validating them through code with a single prompt.
 
-![ScienceBridge Banner](science_bridge_agent_diagram.png)
+![ScienceBridge Banner](banner.png)
+
+## Design
+
+![System Design](science_bridge_agent_diagram.png)
 
 ## 🚀 Features
 
@@ -23,16 +27,14 @@ ScienceBridge is an AI agent that accelerates scientific research by autonomousl
 docker pull zaibaki/science-bridge:latest
 
 # Run the container
-docker run -d -p 8000:8000 --name science-bridge-container \
-  --env-file ./.env \
-  zaibaki/science-bridge
+docker run -p 8000:8000 --env-file .env zaibaki/science-bridge
 ```
 
 The API will be accessible at http://localhost:8000
 
 ## 📚 Documentation
 
-For detailed setup instructions, environment variables, development guidelines, and deployment options, please see the [Documentation](DOCS.md).
+For detailed setup instructions, environment variables, development guidelines, and deployment options, please see the [Documentation](READMEDOCS.md) .
 
 ## 🔗 Resources
 
