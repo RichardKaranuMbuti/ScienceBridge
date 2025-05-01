@@ -103,6 +103,8 @@ Use the `--env-file` flag (recommended):
 
 ```bash
 docker run --env-file .env zaibaki/science-bridge
+docker run -p 8000:8000 --env-file .env zaibaki/science-bridge # port mapping
+
 ```
 
 ## Development Guidelines

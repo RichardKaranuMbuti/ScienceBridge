@@ -2,7 +2,7 @@
 
 ScienceBridge is an AI agent that accelerates scientific research by autonomously analyzing datasets, generating hypotheses, and validating them through code with a single prompt.
 
-![ScienceBridge Banner](https://via.placeholder.com/800x200?text=ScienceBridge)
+![ScienceBridge Banner](science_bridge_agent_diagram.png)
 
 ## 🚀 Features
 
