@@ -1,12 +1,16 @@
 import os
 import pandas as pd
 
+
 def fetch_local_data(directory_path: str) -> dict:
     """
     Scans the directory (recursively) for CSV and Excel files, then returns
     a dictionary where each key is the file name, and the value is another
     dictionary with full path, column names, and number of records.
     """
+    path = os.path.abspath('src/data/uploads')
+    print(f"Searching for files in: {os.path.abspath(path)}")
+    print(f"Directory contents: {os.listdir(path)}")
     data_summary = {}
 
     for root, _, files in os.walk(directory_path):

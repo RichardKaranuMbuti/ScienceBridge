@@ -1,0 +1,32 @@
+# Virtual environments
+venv/
+venvs/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Data files
+*.csv
+*.png
+*.jpeg
+*.jpg
+science_agent.db
+datasets/
+
+# Environment variables
+.env
+
+# Git related
+.git/
+.gitignore
+
+# Docker related
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Editor files
+.idea/
+.vscode/
+*.swp
+*.swo

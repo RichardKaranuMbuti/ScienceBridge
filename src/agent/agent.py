@@ -19,7 +19,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Define path to data directory
-path = 'src/data/uploads'
+# path = 'src/data/uploads'
+path = os.path.abspath('src/data/uploads')
 
 image_path = 'src/data/graphs'
 # Load dataset from the path
