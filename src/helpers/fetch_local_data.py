@@ -7,9 +7,16 @@ def fetch_local_data(directory_path: str) -> dict:
     Scans the directory (recursively) for CSV and Excel files, then returns
     a dictionary where each key is the file name, and the value is another
     dictionary with full path, column names, and number of records.
+    
+    Creates the directory if it doesn't exist.
     """
-    path = os.path.abspath('src/data/uploads')
-    print(f"Searching for files in: {os.path.abspath(path)}")
+    # Create directory if it doesn't exist
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path, exist_ok=True)
+        print(f"Created directory: {os.path.abspath(directory_path)}")
+    
+    path = os.path.abspath(directory_path)
+    print(f"Searching for files in: {path}")
     print(f"Directory contents: {os.listdir(path)}")
     data_summary = {}
 
@@ -35,4 +42,3 @@ def fetch_local_data(directory_path: str) -> dict:
                     }
 
     return data_summary
-

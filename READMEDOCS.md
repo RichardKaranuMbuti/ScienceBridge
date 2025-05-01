@@ -102,9 +102,7 @@ API_KEY=your_api_key_here
 Use the `--env-file` flag (recommended):
 
 ```bash
-docker run -d -p 8000:8000 --name science-bridge-container \
- --env-file ./.env \
- science-bridge
+docker run --env-file .env zaibaki/science-bridge
 ```
 
 ## Development Guidelines
