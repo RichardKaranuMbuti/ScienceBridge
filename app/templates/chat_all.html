@@ -160,7 +160,7 @@
         
         <div class="card shadow-sm mt-4">
             <div class="card-header bg-light">
-                <h5 class="mb-0 d-flex align-items-center"><i class="fas fa-cog text-secondary me-2"></i>Settings</h5>
+                <h5 class="mb-0 d-flex align-items-center  text-dark "><i class="fas fa-cog text-secondary me-2"></i>Settings</h5>
             </div>
             <div class="card-body">
                 <div class="form-check form-switch mb-3">
@@ -178,7 +178,7 @@
     <div class="col-lg-8">
         <div class="card shadow-sm">
             <div class="card-header bg-light">
-                <h5 class="mb-0 d-flex align-items-center"><i class="fas fa-comments text-primary me-2"></i>Agent Chat</h5>
+                <h5 class="mb-0 d-flex align-items-center  text-dark  "><i class="fas fa-commentstext-primary me-2"></i>Agent Chat</h5>
             </div>
             <div class="card-body chat-container">
                 <div class="chat-messages" id="chat-messages">
@@ -294,478 +294,479 @@
 </div>
 {% endblock %}
 
+
 {% block extra_js %}
 <script>
     $(document).ready(function() {
-    // Handle suggestion prompts
-    $('.suggestion-prompt').on('click', function() {
-        const promptText = $(this).text().trim();
-        $('#message-input').val(promptText);
-        // Optional: Automatically submit the form when clicking a suggestion
-        // $('#chat-form').submit();
-    });
-    
-    // Handle chat form submission
-    $('#chat-form').on('submit', function(e) {
-        e.preventDefault();
-        
-        const messageInput = $('#message-input');
-        const message = messageInput.val().trim();
-        
-        if (message === '') return;
-        
-        // Add user message to chat
-        addMessage(message, 'user');
-        
-        // Clear input
-        messageInput.val('');
-        
-        // Show typing indicator
-        addTypingIndicator();
-        
-        // Make API call to agent endpoint
-        $.ajax({
-            url: '/api/agent/run',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({
-                query: message,
-                show_visualizations: $('#show-visualizations-toggle').is(':checked'),
-                show_detailed_analysis: $('#show-detailed-analysis-toggle').is(':checked')
-            }),
-            success: function(response) {
-                removeTypingIndicator();
-                
-                // Process the response
-                processAgentResponse(response);
-            },
-            error: function(xhr, status, error) {
-                removeTypingIndicator();
-                console.error("API Error:", error);
-                addMessage("I encountered an error while processing your request. Please try again.", 'agent');
-            }
+        // Handle suggestion prompts
+        $('.suggestion-prompt').on('click', function() {
+            const promptText = $(this).text().trim();
+            $('#message-input').val(promptText);
+            // Optional: Automatically submit the form when clicking a suggestion
+            // $('#chat-form').submit();
         });
-    });
-    
-    // Process the agent's response
-    function processAgentResponse(response) {
-        console.log("API Response:", response);
-        
-        // Reset the results section first
-        resetResultsSections();
-        
-        // Handle different response formats
-        if (response.messages && Array.isArray(response.messages)) {
-            // Format with messages array
-            const lastAIMessage = response.messages.find(msg => 
-                msg.hasOwnProperty('content') && !msg.hasOwnProperty('query'));
+
+        // Handle chat form submission
+        $('#chat-form').on('submit', function(e) {
+            e.preventDefault();
             
-            if (lastAIMessage) {
-                addMessage(lastAIMessage.content, 'agent');
+            const messageInput = $('#message-input');
+            const message = messageInput.val().trim();
+            
+            if (message === '') return;
+            
+            // Add user message to chat
+            addMessage(message, 'user');
+            
+            // Clear input
+            messageInput.val('');
+            
+            // Show typing indicator
+            addTypingIndicator();
+            
+            // Make API call to agent endpoint
+            $.ajax({
+                url: '/api/agent/run',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    query: message,
+                    show_visualizations: $('#show-visualizations-toggle').is(':checked'),
+                    show_detailed_analysis: $('#show-detailed-analysis-toggle').is(':checked')
+                }),
+                success: function(response) {
+                    removeTypingIndicator();
+                    
+                    // Process the response
+                    processAgentResponse(response);
+                },
+                error: function(xhr, status, error) {
+                    removeTypingIndicator();
+                    console.error("API Error:", error);
+                    addMessage("I encountered an error while processing your request. Please try again.", 'agent');
+                }
+            });
+        });
+        
+        // Process the agent's response
+        function processAgentResponse(response) {
+            console.log("API Response:", response);
+            
+            // Reset the results section first
+            resetResultsSections();
+            
+            // Handle different response formats
+            if (response.messages && Array.isArray(response.messages)) {
+                // Format with messages array
+                const lastAIMessage = response.messages.find(msg => 
+                    msg.hasOwnProperty('content') && !msg.hasOwnProperty('query'));
+                
+                if (lastAIMessage) {
+                    addMessage(lastAIMessage.content, 'agent');
+                } else {
+                    addMessage("I processed your request but couldn't generate a suitable response.", 'agent');
+                }
+            } else if (response.conclusion || response.summary) {
+                // Format with direct conclusion/summary
+                const messageContent = response.conclusion || response.summary;
+                addMessage(messageContent, 'agent');
             } else {
-                addMessage("I processed your request but couldn't generate a suitable response.", 'agent');
+                // Default message if no clear conclusion
+                addMessage("I've processed your request and generated the analysis results.", 'agent');
             }
-        } else if (response.conclusion || response.summary) {
-            // Format with direct conclusion/summary
-            const messageContent = response.conclusion || response.summary;
-            addMessage(messageContent, 'agent');
-        } else {
-            // Default message if no clear conclusion
-            addMessage("I've processed your request and generated the analysis results.", 'agent');
+            
+            // Handle plot paths if present
+            if (response.plot_paths && response.plot_paths.length > 0) {
+                const visualizations = response.plot_paths.map((path, index) => {
+                    return {
+                        path: path,
+                        description: `Visualization ${index + 1}`,
+                        key_insights: ["Generated visualization"]
+                    };
+                });
+                
+                // Update the response object with visualizations
+                response.visualizations = response.visualizations || visualizations;
+            }
+            
+            // Display all sections from the response
+            displayResultsSections(response);
         }
         
-        // Handle plot paths if present
-        if (response.plot_paths && response.plot_paths.length > 0) {
-            const visualizations = response.plot_paths.map((path, index) => {
-                return {
-                    path: path,
-                    description: `Visualization ${index + 1}`,
-                    key_insights: ["Generated visualization"]
-                };
+        function addMessage(message, type) {
+            const messageDiv = $(`
+                <div class="message ${type}-message">
+                    <p>${message}</p>
+                </div>
+            `);
+            
+            $('#chat-messages').append(messageDiv);
+            scrollChatToBottom();
+        }
+
+        function addTypingIndicator() {
+            const indicator = $(`
+                <div class="message agent-message typing-indicator">
+                    <div class="spinner-grow spinner-grow-sm text-primary me-1" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="spinner-grow spinner-grow-sm text-primary me-1" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="spinner-grow spinner-grow-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `);
+            
+            $('#chat-messages').append(indicator);
+            scrollChatToBottom();
+        }
+
+        function removeTypingIndicator() {
+            $('.typing-indicator').remove();
+        }
+
+        function scrollChatToBottom() {
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function resetResultsSections() {
+            // Hide all sections
+            $('#action-plan-section').addClass('d-none');
+            $('#decisions-section').addClass('d-none');
+            $('#visualization-section').addClass('d-none');
+            $('#observations-section').addClass('d-none');
+            $('#summary-section').addClass('d-none');
+            $('#next-steps-section').addClass('d-none');
+            
+            // Clear all content
+            $('#action-plan-list').empty();
+            $('#decisions-list').empty();
+            $('#visualization-container').empty();
+            $('#observations-list').empty();
+            $('#summary-content').empty();
+            $('#next-steps-list').empty();
+            
+            // Also clear the carousel
+            $('#carousel-inner').empty();
+            
+            // Hide the entire results section
+            $('#results-section').addClass('d-none');
+        }
+
+        function displayResultsSections(results) {
+            let hasResultsToDisplay = false;
+            
+            // Process all sections in the response
+            
+            // Summary (prioritize showing this first if available)
+            if (results.summary) {
+                displaySummary(results.summary);
+                hasResultsToDisplay = true;
+            }
+            
+            // Action Plan
+            if (results.action_plan && Array.isArray(results.action_plan) && results.action_plan.length > 0) {
+                displayActionPlan(results.action_plan);
+                hasResultsToDisplay = true;
+            }
+            
+            // Visualizations
+            if (results.visualizations && Array.isArray(results.visualizations) && results.visualizations.length > 0) {
+                displayVisualizations(results.visualizations);
+                hasResultsToDisplay = true;
+            }
+            
+            // Decisions and Justifications
+            if (results.decisions_and_justifications && 
+                Array.isArray(results.decisions_and_justifications) && 
+                results.decisions_and_justifications.length > 0) {
+                displayDecisions(results.decisions_and_justifications);
+                hasResultsToDisplay = true;
+            }
+            
+            // Observations
+            if (results.observations && Array.isArray(results.observations) && results.observations.length > 0) {
+                displayObservations(results.observations);
+                hasResultsToDisplay = true;
+            }
+            
+            // Next Steps
+            if (results.next_steps && Array.isArray(results.next_steps) && results.next_steps.length > 0) {
+                displayNextSteps(results.next_steps);
+                hasResultsToDisplay = true;
+            }
+            
+            // Only show results section if there's something to display
+            if (hasResultsToDisplay) {
+                $('#results-section').removeClass('d-none');
+            }
+        }
+        
+        function displayActionPlan(actionPlan) {
+            const actionPlanList = $('#action-plan-list');
+            actionPlanList.empty();
+            
+            actionPlan.forEach(step => {
+                let stepDescription = step;
+                
+                // Handle both object format and string format
+                if (typeof step === 'object') {
+                    stepDescription = step.description || `Step ${step.step}`;
+                }
+                
+                actionPlanList.append(`
+                    <li class="list-group-item">
+                        ${stepDescription}
+                    </li>
+                `);
             });
             
-            // Update the response object with visualizations
-            response.visualizations = response.visualizations || visualizations;
+            $('#action-plan-section').removeClass('d-none');
         }
         
-        // Display all sections from the response
-        displayResultsSections(response);
-    }
-    
-    function addMessage(message, type) {
-        const messageDiv = $(`
-            <div class="message ${type}-message">
-                <p>${message}</p>
-            </div>
-        `);
-        
-        $('#chat-messages').append(messageDiv);
-        scrollChatToBottom();
-    }
-
-    function addTypingIndicator() {
-        const indicator = $(`
-            <div class="message agent-message typing-indicator">
-                <div class="spinner-grow spinner-grow-sm text-primary me-1" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <div class="spinner-grow spinner-grow-sm text-primary me-1" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <div class="spinner-grow spinner-grow-sm text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        `);
-        
-        $('#chat-messages').append(indicator);
-        scrollChatToBottom();
-    }
-
-    function removeTypingIndicator() {
-        $('.typing-indicator').remove();
-    }
-
-    function scrollChatToBottom() {
-        const chatMessages = document.getElementById('chat-messages');
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
-    function resetResultsSections() {
-        // Hide all sections
-        $('#action-plan-section').addClass('d-none');
-        $('#decisions-section').addClass('d-none');
-        $('#visualization-section').addClass('d-none');
-        $('#observations-section').addClass('d-none');
-        $('#summary-section').addClass('d-none');
-        $('#next-steps-section').addClass('d-none');
-        
-        // Clear all content
-        $('#action-plan-list').empty();
-        $('#decisions-list').empty();
-        $('#visualization-container').empty();
-        $('#observations-list').empty();
-        $('#summary-content').empty();
-        $('#next-steps-list').empty();
-        
-        // Also clear the carousel
-        $('#carousel-inner').empty();
-        
-        // Hide the entire results section
-        $('#results-section').addClass('d-none');
-    }
-
-    function displayResultsSections(results) {
-        let hasResultsToDisplay = false;
-        
-        // Process all sections in the response
-        
-        // Summary (prioritize showing this first if available)
-        if (results.summary) {
-            displaySummary(results.summary);
-            hasResultsToDisplay = true;
-        }
-        
-        // Action Plan
-        if (results.action_plan && Array.isArray(results.action_plan) && results.action_plan.length > 0) {
-            displayActionPlan(results.action_plan);
-            hasResultsToDisplay = true;
-        }
-        
-        // Visualizations
-        if (results.visualizations && Array.isArray(results.visualizations) && results.visualizations.length > 0) {
-            displayVisualizations(results.visualizations);
-            hasResultsToDisplay = true;
-        }
-        
-        // Decisions and Justifications
-        if (results.decisions_and_justifications && 
-            Array.isArray(results.decisions_and_justifications) && 
-            results.decisions_and_justifications.length > 0) {
-            displayDecisions(results.decisions_and_justifications);
-            hasResultsToDisplay = true;
-        }
-        
-        // Observations
-        if (results.observations && Array.isArray(results.observations) && results.observations.length > 0) {
-            displayObservations(results.observations);
-            hasResultsToDisplay = true;
-        }
-        
-        // Next Steps
-        if (results.next_steps && Array.isArray(results.next_steps) && results.next_steps.length > 0) {
-            displayNextSteps(results.next_steps);
-            hasResultsToDisplay = true;
-        }
-        
-        // Only show results section if there's something to display
-        if (hasResultsToDisplay) {
-            $('#results-section').removeClass('d-none');
-        }
-    }
-    
-    function displayActionPlan(actionPlan) {
-        const actionPlanList = $('#action-plan-list');
-        actionPlanList.empty();
-        
-        actionPlan.forEach(step => {
-            let stepDescription = step;
+        function displayDecisions(decisions) {
+            const decisionsList = $('#decisions-list');
+            decisionsList.empty();
             
-            // Handle both object format and string format
-            if (typeof step === 'object') {
-                stepDescription = step.description || `Step ${step.step}`;
-            }
+            decisions.forEach(decision => {
+                decisionsList.append(`
+                    <li class="list-group-item">
+                        <strong>${decision.decision}</strong>
+                        <p class="mb-1 mt-2 text-muted">Justification: ${decision.justification}</p>
+                        ${decision.tool_used ? `<small class="badge bg-secondary">Tool: ${decision.tool_used}</small>` : ''}
+                    </li>
+                `);
+            });
             
-            actionPlanList.append(`
-                <li class="list-group-item">
-                    ${stepDescription}
-                </li>
-            `);
-        });
-        
-        $('#action-plan-section').removeClass('d-none');
-    }
-    
-    function displayDecisions(decisions) {
-        const decisionsList = $('#decisions-list');
-        decisionsList.empty();
-        
-        decisions.forEach(decision => {
-            decisionsList.append(`
-                <li class="list-group-item">
-                    <strong>${decision.decision}</strong>
-                    <p class="mb-1 mt-2 text-muted">Justification: ${decision.justification}</p>
-                    ${decision.tool_used ? `<small class="badge bg-secondary">Tool: ${decision.tool_used}</small>` : ''}
-                </li>
-            `);
-        });
-        
-        $('#decisions-section').removeClass('d-none');
-    }
+            $('#decisions-section').removeClass('d-none');
+        }
 
-    function displayVisualizations(visualizations) {
-        const visualizationContainer = $('#visualization-container');
-        visualizationContainer.empty();
+        function displayVisualizations(visualizations) {
+            const visualizationContainer = $('#visualization-container');
+            visualizationContainer.empty();
+            
+            // Prepare the carousel for the modal
+            const carouselInner = $('#carousel-inner');
+            carouselInner.empty();
+            
+            visualizations.forEach((viz, index) => {
+                // Ensure we have a valid visualization object
+                let vizPath, description, keyInsights;
+                
+                if (typeof viz === 'string') {
+                    // Simple path format
+                    vizPath = viz;
+                    description = `Visualization ${index + 1}`;
+                    keyInsights = ["Generated visualization"];
+                } else if (typeof viz === 'object') {
+                    // Full object format
+                    vizPath = viz.path || '';
+                    description = viz.description || `Visualization ${index + 1}`;
+                    keyInsights = viz.key_insights || ["Generated visualization"];
+                } else {
+                    // Skip invalid formats
+                    return;
+                }
+                
+                // Skip if no path is available
+                if (!vizPath) return;
+                
+                // Create the thumbnail card
+                const vizCard = $(`
+                    <div class="col-md-6 mb-4">
+                        <div class="card viz-card shadow-sm" data-index="${index}">
+                            <img src="${vizPath}" class="card-img-top viz-thumbnail" alt="${description}">
+                            <div class="card-body">
+                                <h6 class="card-title">${description}</h6>
+                                <button class="btn btn-sm btn-outline-primary view-enlarged">
+                                    <i class="fas fa-search-plus me-1"></i> View Enlarged
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `);
+                
+                visualizationContainer.append(vizCard);
+                
+                // Add to carousel - THIS WAS COMMENTED OUT IN ORIGINAL CODE
+                carouselInner.append(`
+                    <div class="carousel-item ${index === 0 ? 'active' : ''}" data-index="${index}">
+                        <img src="${vizPath}" class="d-block w-100" alt="${description}">
+                        <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-2">
+                            <h5>${description}</h5>
+                        </div>
+                    </div>
+                `);
+                
+                // Store visualization data as a data attribute for easy access
+                $(`.carousel-item[data-index="${index}"]`).data('visualization', {
+                    path: vizPath,
+                    description: description,
+                    keyInsights: keyInsights
+                });
+            });
+            
+            // Add event listeners for the thumbnail cards
+            $('.viz-card').on('click', function() {
+                const index = $(this).data('index');
+                showVisualizationModal(visualizations, index);
+            });
+            
+            $('.view-enlarged').on('click', function(e) {
+                e.stopPropagation();
+                const index = $(this).closest('.viz-card').data('index');
+                showVisualizationModal(visualizations, index);
+            });
+            
+            // Show the visualization section
+            $('#visualization-section').removeClass('d-none');
+        }
         
-        // Prepare the carousel for the modal
-        const carouselInner = $('#carousel-inner');
-        carouselInner.empty();
-        
-        visualizations.forEach((viz, index) => {
-            // Ensure we have a valid visualization object
+        function showVisualizationModal(visualizations, index) {
+            // Ensure we have valid data
+            if (!Array.isArray(visualizations) || !visualizations[index]) return;
+            
+            const viz = visualizations[index];
             let vizPath, description, keyInsights;
             
             if (typeof viz === 'string') {
-                // Simple path format
                 vizPath = viz;
                 description = `Visualization ${index + 1}`;
                 keyInsights = ["Generated visualization"];
-            } else if (typeof viz === 'object') {
-                // Full object format
+            } else {
                 vizPath = viz.path || '';
                 description = viz.description || `Visualization ${index + 1}`;
                 keyInsights = viz.key_insights || ["Generated visualization"];
-            } else {
-                // Skip invalid formats
-                return;
             }
             
-            // Skip if no path is available
-            if (!vizPath) return;
+            // Set modal title
+            $('#imageModalLabel').text(description);
+            $('#modal-viz-title').text(description);
             
-            // Create the thumbnail card
-            const vizCard = $(`
-                <div class="col-md-6 mb-4">
-                    <div class="card viz-card shadow-sm" data-index="${index}">
-                        <img src="${vizPath}" class="card-img-top viz-thumbnail" alt="${description}">
-                        <div class="card-body">
-                            <h6 class="card-title">${description}</h6>
-                            <button class="btn btn-sm btn-outline-primary view-enlarged">
-                                <i class="fas fa-search-plus me-1"></i> View Enlarged
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `);
-            
-            visualizationContainer.append(vizCard);
-            
-            // Add to carousel - THIS WAS COMMENTED OUT IN ORIGINAL CODE
-            carouselInner.append(`
-                <div class="carousel-item ${index === 0 ? 'active' : ''}" data-index="${index}">
-                    <img src="${vizPath}" class="d-block w-100" alt="${description}">
-                    <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-2">
-                        <h5>${description}</h5>
-                    </div>
-                </div>
-            `);
-            
-            // Store visualization data as a data attribute for easy access
-            $(`.carousel-item[data-index="${index}"]`).data('visualization', {
-                path: vizPath,
-                description: description,
-                keyInsights: keyInsights
+            // Set download button
+            $('#download-visualization').off('click').on('click', function() {
+                // Create a temporary link to download the image
+                const link = document.createElement('a');
+                link.href = vizPath;
+                link.download = `visualization-${index+1}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             });
-        });
-        
-        // Add event listeners for the thumbnail cards
-        $('.viz-card').on('click', function() {
-            const index = $(this).data('index');
-            showVisualizationModal(visualizations, index);
-        });
-        
-        $('.view-enlarged').on('click', function(e) {
-            e.stopPropagation();
-            const index = $(this).closest('.viz-card').data('index');
-            showVisualizationModal(visualizations, index);
-        });
-        
-        // Show the visualization section
-        $('#visualization-section').removeClass('d-none');
-    }
-    
-    function showVisualizationModal(visualizations, index) {
-        // Ensure we have valid data
-        if (!Array.isArray(visualizations) || !visualizations[index]) return;
-        
-        const viz = visualizations[index];
-        let vizPath, description, keyInsights;
-        
-        if (typeof viz === 'string') {
-            vizPath = viz;
-            description = `Visualization ${index + 1}`;
-            keyInsights = ["Generated visualization"];
-        } else {
-            vizPath = viz.path || '';
-            description = viz.description || `Visualization ${index + 1}`;
-            keyInsights = viz.key_insights || ["Generated visualization"];
+            
+            // Set key insights
+            const insightsList = $('#modal-insights-list');
+            insightsList.empty();
+            keyInsights.forEach(insight => {
+                insightsList.append(`<li class="list-group-item">${insight}</li>`);
+            });
+            
+            // Set active carousel item
+            $('#visualizationCarousel .carousel-item').removeClass('active');
+            $(`#visualizationCarousel .carousel-item[data-index="${index}"]`).addClass('active');
+            
+            // Add carousel event listeners for updating insights when sliding
+            $('#visualizationCarousel').on('slide.bs.carousel', function (e) {
+                const newIndex = $(e.relatedTarget).data('index');
+                const newViz = visualizations[newIndex];
+                
+                if (newViz) {
+                    // Update title and insights for the new slide
+                    let newDescription, newKeyInsights;
+                    
+                    if (typeof newViz === 'string') {
+                        newDescription = `Visualization ${newIndex + 1}`;
+                        newKeyInsights = ["Generated visualization"];
+                    } else {
+                        newDescription = newViz.description || `Visualization ${newIndex + 1}`;
+                        newKeyInsights = newViz.key_insights || ["Generated visualization"];
+                    }
+                    
+                    // Update modal content
+                    $('#imageModalLabel').text(newDescription);
+                    $('#modal-viz-title').text(newDescription);
+                    
+                    // Update insights
+                    insightsList.empty();
+                    newKeyInsights.forEach(insight => {
+                        insightsList.append(`<li class="list-group-item">${insight}</li>`);
+                    });
+                    
+                    // Update download button
+                    $('#download-visualization').off('click').on('click', function() {
+                        const link = document.createElement('a');
+                        link.href = newViz.path || newViz;
+                        link.download = `visualization-${newIndex+1}.png`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    });
+                }
+            });
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+            modal.show();
+        }
+
+        function displayObservations(observations) {
+            const observationsList = $('#observations-list');
+            observationsList.empty();
+            
+            observations.forEach(observation => {
+                observationsList.append(`
+                    <li class="list-group-item">
+                        <i class="fas fa-eye me-2 text-teal"></i>
+                        ${observation}
+                    </li>
+                `);
+            });
+            
+            $('#observations-section').removeClass('d-none');
+        }
+
+        function displaySummary(summary) {
+            $('#summary-content').html(`
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-file-alt me-2"></i>
+                    ${summary}
+                </div>
+            `);
+            
+            $('#summary-section').removeClass('d-none');
+        }
+
+        function displayNextSteps(nextSteps) {
+            const nextStepsList = $('#next-steps-list');
+            nextStepsList.empty();
+            
+            nextSteps.forEach(step => {
+                nextStepsList.append(`
+                    <li class="list-group-item">
+                        <i class="fas fa-arrow-right me-2 text-success"></i>
+                        ${step}
+                    </li>
+                `);
+            });
+            
+            $('#next-steps-section').removeClass('d-none');
         }
         
-        // Set modal title
-        $('#imageModalLabel').text(description);
-        $('#modal-viz-title').text(description);
-        
-        // Set download button
-        $('#download-visualization').off('click').on('click', function() {
-            // Create a temporary link to download the image
-            const link = document.createElement('a');
-            link.href = vizPath;
-            link.download = `visualization-${index+1}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
-        
-        // Set key insights
-        const insightsList = $('#modal-insights-list');
-        insightsList.empty();
-        keyInsights.forEach(insight => {
-            insightsList.append(`<li class="list-group-item">${insight}</li>`);
-        });
-        
-        // Set active carousel item
-        $('#visualizationCarousel .carousel-item').removeClass('active');
-        $(`#visualizationCarousel .carousel-item[data-index="${index}"]`).addClass('active');
-        
-        // Add carousel event listeners for updating insights when sliding
-        $('#visualizationCarousel').on('slide.bs.carousel', function (e) {
-            const newIndex = $(e.relatedTarget).data('index');
-            const newViz = visualizations[newIndex];
+        // Toggle settings functionality
+        $('#show-visualizations-toggle, #show-detailed-analysis-toggle').on('change', function() {
+            // You can implement logic to dynamically show/hide sections based on toggles
+            // This is optional as we're already sending these preferences with the API request
+            if (!$('#show-visualizations-toggle').is(':checked')) {
+                $('#visualization-section').addClass('d-none');
+            }
             
-            if (newViz) {
-                // Update title and insights for the new slide
-                let newDescription, newKeyInsights;
-                
-                if (typeof newViz === 'string') {
-                    newDescription = `Visualization ${newIndex + 1}`;
-                    newKeyInsights = ["Generated visualization"];
-                } else {
-                    newDescription = newViz.description || `Visualization ${newIndex + 1}`;
-                    newKeyInsights = newViz.key_insights || ["Generated visualization"];
-                }
-                
-                // Update modal content
-                $('#imageModalLabel').text(newDescription);
-                $('#modal-viz-title').text(newDescription);
-                
-                // Update insights
-                insightsList.empty();
-                newKeyInsights.forEach(insight => {
-                    insightsList.append(`<li class="list-group-item">${insight}</li>`);
-                });
-                
-                // Update download button
-                $('#download-visualization').off('click').on('click', function() {
-                    const link = document.createElement('a');
-                    link.href = newViz.path || newViz;
-                    link.download = `visualization-${newIndex+1}.png`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                });
+            if (!$('#show-detailed-analysis-toggle').is(':checked')) {
+                $('#action-plan-section, #decisions-section').addClass('d-none');
             }
         });
-        
-        // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('imageModal'));
-        modal.show();
-    }
-
-    function displayObservations(observations) {
-        const observationsList = $('#observations-list');
-        observationsList.empty();
-        
-        observations.forEach(observation => {
-            observationsList.append(`
-                <li class="list-group-item">
-                    <i class="fas fa-eye me-2 text-teal"></i>
-                    ${observation}
-                </li>
-            `);
-        });
-        
-        $('#observations-section').removeClass('d-none');
-    }
-
-    function displaySummary(summary) {
-        $('#summary-content').html(`
-            <div class="alert alert-info mb-0">
-                <i class="fas fa-file-alt me-2"></i>
-                ${summary}
-            </div>
-        `);
-        
-        $('#summary-section').removeClass('d-none');
-    }
-
-    function displayNextSteps(nextSteps) {
-        const nextStepsList = $('#next-steps-list');
-        nextStepsList.empty();
-        
-        nextSteps.forEach(step => {
-            nextStepsList.append(`
-                <li class="list-group-item">
-                    <i class="fas fa-arrow-right me-2 text-success"></i>
-                    ${step}
-                </li>
-            `);
-        });
-        
-        $('#next-steps-section').removeClass('d-none');
-    }
-    
-    // Toggle settings functionality
-    $('#show-visualizations-toggle, #show-detailed-analysis-toggle').on('change', function() {
-        // You can implement logic to dynamically show/hide sections based on toggles
-        // This is optional as we're already sending these preferences with the API request
-        if (!$('#show-visualizations-toggle').is(':checked')) {
-            $('#visualization-section').addClass('d-none');
-        }
-        
-        if (!$('#show-detailed-analysis-toggle').is(':checked')) {
-            $('#action-plan-section, #decisions-section').addClass('d-none');
-        }
     });
-});
 </script>
 {% endblock %}

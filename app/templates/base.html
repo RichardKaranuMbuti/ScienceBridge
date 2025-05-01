@@ -165,6 +165,57 @@
                 column-count: 1;
             }
         }
+
+        /* Hero section styling */
+        .hero-section {
+            background: linear-gradient(135deg, var(--dark-color) 0%, #1a2a3a 100%);
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .feature-card {
+            text-align: center;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            height: 100%;
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .workflow-step {
+            text-align: center;
+            position: relative;
+            padding-bottom: 2rem;
+        }
+
+        .workflow-step:not(:last-child)::after {
+            content: '↓';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            margin-bottom: 0.5rem;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -205,6 +256,129 @@
         </div>
     </nav>
 
+    <!-- Hero section (only on homepage) -->
+    {% if request.path == '/' %}
+    <div class="container my-4">
+        <section class="hero-section">
+            <div class="container py-4">
+                <div class="row align-items-center">
+                    <div class="col-lg-7">
+                        <h1 class="display-4 fw-bold mb-4">Accelerate Your Scientific Discovery</h1>
+                        <p class="lead mb-4">ScienceBridge is an AI-powered platform that helps researchers analyze datasets, generate hypotheses, and validate them through code - all with a single prompt.</p>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                            <a href="/upload" class="btn btn-primary btn-lg px-4 me-md-2">Get Started</a>
+                            <a href="/chat-all-datasets" class="btn btn-outline-light btn-lg px-4">Try Assistant</a>
+                        </div>
+                    </div>
+                    <div class="col-lg-5 text-center">
+                        <i class="fas fa-microscope science-icon" style="font-size: 8rem; color: var(--secondary-color);"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Features section -->
+        <section class="container my-5">
+            <h2 class="text-center mb-4">How ScienceBridge Accelerates Your Research</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3>Data Analysis</h3>
+                        <p>Quickly analyze complex datasets without extensive coding. Our AI agent identifies patterns, correlations, and outliers automatically.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <h3>Hypothesis Generation</h3>
+                        <p>Generate testable scientific hypotheses based on data patterns. Let AI suggest connections you might have missed.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <h3>Code Validation</h3>
+                        <p>Validate hypotheses through automatically generated code. Test ideas faster with ready-to-run Python scripts.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-project-diagram"></i>
+                        </div>
+                        <h3>ML Model Integration</h3>
+                        <p>Run simple ML models including regression, decision trees, clustering, and random forest algorithms with a single prompt.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <h3>Visualization</h3>
+                        <p>Generate insightful graphs and plots to visualize your findings and prepare them for publication or presentations.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <h3>Multi-Dataset Analysis</h3>
+                        <p>Compare and analyze multiple datasets simultaneously to uncover cross-dataset patterns and relationships.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- How it works section -->
+        <section class="container my-5">
+            <h2 class="text-center mb-4">How It Works</h2>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="workflow-step">
+                        <span class="step-number">1</span>
+                        <h4>Upload Data</h4>
+                        <p>Upload your datasets in CSV format to ScienceBridge.</p>
+                        <i class="fas fa-upload science-icon" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="workflow-step">
+                        <span class="step-number">2</span>
+                        <h4>Ask Questions</h4>
+                        <p>Ask the AI assistant questions about your data or request specific analyses.</p>
+                        <i class="fas fa-question-circle science-icon" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="workflow-step">
+                        <span class="step-number">3</span>
+                        <h4>Get Insights</h4>
+                        <p>Receive instant analysis, visualizations, and generated code.</p>
+                        <i class="fas fa-lightbulb science-icon" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="workflow-step">
+                        <span class="step-number">4</span>
+                        <h4>Refine Results</h4>
+                        <p>Iterate on your findings with follow-up questions and refinements.</p>
+                        <i class="fas fa-sync-alt science-icon" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    {% endif %}
+
     <!-- Main content -->
     <main class="container my-4">
         {% block content %}{% endblock %}
@@ -212,8 +386,16 @@
 
     <!-- Footer -->
     <footer class="footer">
-        <div class="container text-center">
-            <p>© 2025 ScienceBridge | Accelerating Scientific Discovery with AI</p>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-center text-md-start">
+                    <h5><i class="fas fa-atom me-2"></i>ScienceBridge</h5>
+                    <p>Accelerating scientific discovery through AI-powered data analysis.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <p>© 2025 ScienceBridge | <a href="https://github.com/RichardKaranuMbuti/ScienceBridge" class="text-white">GitHub</a> | <a href="https://hub.docker.com/repository/docker/zaibaki/science-bridge/" class="text-white">Docker Hub</a></p>
+                </div>
+            </div>
         </div>
     </footer>
 
