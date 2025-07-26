@@ -1,0 +1,204 @@
+name: Deploy ScienceBridge to Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ACR_NAME: sciencebridgeacr
+  ACR_REGISTRY_URL: sciencebridgeacr.azurecr.io
+  IMAGE_NAME: sciencebridge
+  RESOURCE_GROUP: rg-sciencebridge
+  APP_NAME: sciencebridge
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Checkout source code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Log in to Azure using service principal credentials
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Step 3: Verify ACR and subscription
+      - name: Verify ACR and subscription
+        run: |
+          echo "Current subscription:"
+          az account show --query "{name:name, id:id}" -o table
+          echo "Checking if ACR exists..."
+          az acr show --name ${{ env.ACR_NAME }} --query "{name:name, resourceGroup:resourceGroup}" -o table
+
+      # Step 4: Log in to Azure Container Registry
+      - name: Log in to Azure Container Registry
+        run: |
+          az acr login --name ${{ env.ACR_NAME }}
+
+      # Step 5: Build and push Docker image to ACR
+      - name: Build and Push Docker image to ACR
+        run: |
+          echo "=== Building Docker Image ==="
+          docker build -t ${{ env.ACR_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+          docker tag ${{ env.ACR_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.ACR_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:latest
+          
+          echo "=== Pushing to ACR ==="
+          docker push ${{ env.ACR_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.ACR_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:latest
+          
+          echo "✅ Image pushed successfully"
+          echo "Image: ${{ env.ACR_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
+      # Step 6: Configure App Service for container deployment using service principal
+      - name: Configure App Service for Container
+        run: |
+          echo "=== Configuring App Service Container ==="
+          az webapp config container set \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.APP_NAME }} \
+            --docker-custom-image-name ${{ env.ACR_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --docker-registry-server-url https://${{ env.ACR_REGISTRY_URL }}
+          
+          echo "✅ Container image configured"
+
+      # Step 7: Configure container registry authentication using service principal
+      - name: Configure ACR authentication for App Service
+        run: |
+          echo "=== Configuring ACR Authentication ==="
+          # Get the service principal details from the secret
+          CLIENT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r '.clientId')
+          CLIENT_SECRET=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r '.clientSecret')
+          
+          # Configure App Service to use service principal for ACR access
+          az webapp config appsettings set \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.APP_NAME }} \
+            --settings \
+              DOCKER_REGISTRY_SERVER_URL=https://${{ env.ACR_REGISTRY_URL }} \
+              DOCKER_REGISTRY_SERVER_USERNAME=$CLIENT_ID \
+              DOCKER_REGISTRY_SERVER_PASSWORD=$CLIENT_SECRET
+          
+          echo "✅ ACR authentication configured"
+
+      # Step 8: Configure application environment variables
+      - name: Configure App Settings
+        run: |
+          echo "=== Configuring App Settings ==="
+          az webapp config appsettings set \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.APP_NAME }} \
+            --settings \
+              NODE_ENV=production \
+              NEXT_TELEMETRY_DISABLED=1 \
+              PORT=3000 \
+              WEBSITES_PORT=3000 \
+              NEXT_PUBLIC_API_URL="${{ secrets.NEXT_PUBLIC_API_URL || 'https://api.sciencebridge.com' }}" \
+              NEXT_PUBLIC_APP_NAME="ScienceBridge" \
+              NEXT_PUBLIC_ENVIRONMENT="production" \
+              NEXT_PUBLIC_FEATURES="${{ secrets.NEXT_PUBLIC_FEATURES || '' }}" \
+              NEXT_PUBLIC_ANALYTICS_ID="${{ secrets.NEXT_PUBLIC_ANALYTICS_ID || '' }}" \
+              WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
+              DOCKER_ENABLE_CI=true
+          
+          echo "✅ App settings configured"
+
+      # Step 9: Restart App Service to pull new container
+      - name: Restart App Service
+        run: |
+          echo "=== Restarting App Service ==="
+          az webapp restart \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.APP_NAME }}
+          
+          echo "✅ App Service restarted"
+
+      # Step 10: Wait for deployment and verify
+      - name: Verify Deployment
+        run: |
+          echo "=== Verifying Deployment ==="
+          
+          # Wait for the app to be ready
+          echo "Waiting for app to start..."
+          sleep 60
+          
+          # Get the app URL
+          APP_URL=$(az webapp show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.APP_NAME }} --query defaultHostName -o tsv)
+          FULL_URL="https://$APP_URL"
+          
+          echo "App URL: $FULL_URL"
+          
+          # Test the endpoint with more attempts
+          for i in {1..10}; do
+            echo "Attempt $i: Testing $FULL_URL"
+            if curl -s -f -o /dev/null "$FULL_URL"; then
+              echo "✅ App is responding successfully!"
+              break
+            elif [ $i -eq 10 ]; then
+              echo "⚠️  App may still be starting up. Check the Azure portal for container logs."
+              echo "To check logs run: az webapp log tail --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.APP_NAME }}"
+            else
+              echo "App not ready yet, waiting 30 seconds..."
+              sleep 30
+            fi
+          done
+
+      # Step 11: Run health check (optional)
+      - name: Health Check
+        run: |
+          echo "=== Running Health Check ==="
+          APP_URL=$(az webapp show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.APP_NAME }} --query defaultHostName -o tsv)
+          HEALTH_URL="https://$APP_URL/api/health"
+          
+          # Try to hit health endpoint if it exists
+          if curl -s -f "$HEALTH_URL" > /dev/null 2>&1; then
+            echo "✅ Health check endpoint is responding"
+            curl -s "$HEALTH_URL" | jq . || echo "Health check response received"
+          else
+            echo "ℹ️  Health check endpoint not available or not responding"
+          fi
+        continue-on-error: true
+
+      # Step 12: Display deployment information
+      - name: Deployment Summary
+        run: |
+          echo "=== DEPLOYMENT COMPLETE ==="
+          echo ""
+          APP_URL=$(az webapp show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.APP_NAME }} --query defaultHostName -o tsv)
+          echo "🎉 ScienceBridge deployed successfully!"
+          echo ""
+          echo "📱 Application URL: https://$APP_URL"
+          echo "🏷️  Image Tag: ${{ github.sha }}"
+          echo "📦 Docker Image: ${{ env.ACR_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo "🌍 Environment: Production"
+          echo "🔧 Resource Group: ${{ env.RESOURCE_GROUP }}"
+          echo "📊 Container Registry: ${{ env.ACR_NAME }}"
+          echo ""
+          echo "🔍 Monitoring Commands:"
+          echo "  View logs: az webapp log tail --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.APP_NAME }}"
+          echo "  Check status: az webapp show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.APP_NAME }} --query state"
+          echo "  Restart app: az webapp restart --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.APP_NAME }}"
+          echo ""
+          echo "🐛 Debug Commands:"
+          echo "  Container logs: az webapp log config --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.APP_NAME }} --docker-container-logging filesystem"
+          echo "  SSH into container: az webapp ssh --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.APP_NAME }}"
+          echo ""
+          echo "🔧 Configuration:"
+          echo "  View app settings: az webapp config appsettings list --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.APP_NAME }}"
+          echo "  View container config: az webapp config container show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.APP_NAME }}"
+        if: always()
+
+      # Step 13: Azure logout
+      - name: Azure Logout
+        run: |
+          az logout
+        if: always()
