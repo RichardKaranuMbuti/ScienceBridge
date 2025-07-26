@@ -6,7 +6,8 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV MPLCONFIGDIR=/app/.matplotlib
+ENV MPLCONFIGDIR=/tmp/matplotlib
+ENV HOME=/root
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -31,11 +32,12 @@ RUN echo "*.csv\n*.png\n*.jpeg\n*.jpg\nscience_agent.db\n.env\nvenv/\nvenvs/\nda
 COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
-# Create necessary directories
+# Create necessary directories and ensure we're running as root
 RUN mkdir -p /app/src/data/uploads \
     /app/venvs \
-    /app/.matplotlib \
-    /app/temp
+    /tmp/matplotlib \
+    /app/temp \
+    && whoami
 
 # Note: Running as root for now - consider switching to non-root user for production security
 
