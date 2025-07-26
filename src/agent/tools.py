@@ -1,3 +1,4 @@
+#src/agent/tools.py
 from typing import List, Optional, Annotated, Dict, Any
 from langchain_core.tools import tool
 from langchain_core.runnables import RunnableConfig
@@ -12,9 +13,11 @@ from src.openai_tool.client import OpenAIClient
 from src.openai_tool.OpenAIVisionClient import OpenAIVisionClient
 
 # Initialize the Python executor once for global use
+# The executor will automatically detect Docker environment and adapt
 python_executor = SimplePythonExecutor(
     venv_path=os.path.join(os.getcwd(), "venvs"),
-    auto_install=True
+    auto_install=True,
+    use_system_python=False  # Let it auto-detect Docker
 )
 
 # Status printing utility
@@ -55,9 +58,22 @@ def fetch_dataset_info(
     
     try:
         datasets = {}
-        for file in os.listdir(dataset_path):
-            if file.endswith('.csv'):
-                file_path = os.path.join(dataset_path, file)
+        
+        # Check if dataset_path exists
+        if not os.path.exists(dataset_path):
+            print_tool_execution("fetch_dataset_info", "ERROR", f"Dataset path does not exist: {dataset_path}")
+            return f"Error: Dataset path does not exist: {dataset_path}"
+        
+        # Get all CSV files in the directory
+        csv_files = [f for f in os.listdir(dataset_path) if f.endswith('.csv')]
+        
+        if not csv_files:
+            print_tool_execution("fetch_dataset_info", "SUCCESS", f"No CSV files found in {dataset_path}")
+            return f"No CSV files found in {dataset_path}"
+        
+        for file in csv_files:
+            file_path = os.path.join(dataset_path, file)
+            try:
                 df = pd.read_csv(file_path)
                 
                 # Get column info with data types and sample values
@@ -77,6 +93,11 @@ def fetch_dataset_info(
                     'column_details': column_info,
                     'num_records': len(df),
                     'missing_values': df.isna().sum().to_dict()
+                }
+            except Exception as file_error:
+                print_tool_execution("fetch_dataset_info", "ERROR", f"Error reading {file}: {str(file_error)}")
+                datasets[file] = {
+                    'error': f"Could not read file: {str(file_error)}"
                 }
         
         result = json.dumps(datasets, indent=2)
@@ -105,34 +126,39 @@ def execute_python(
     """
     print_tool_execution("execute_python", "RUNNING", f"Executing Python code...")
     
-    result = python_executor.execute_code(code)
-    
-    response_parts = []
-    
-    if result["success"]:
-        if result["stdout"]:
-            response_parts.append(f"Output:\n{result['stdout']}")
+    try:
+        result = python_executor.execute_code(code)
         
-        if result["plot_paths"]:
-            paths_str = "\n".join(result["plot_paths"])
-            response_parts.append(f"Generated plots:\n{paths_str}")
-            
-            # Store plot paths in the state if available
-            if state is not None:
-                if "plot_paths" not in state:
-                    state["plot_paths"] = []
-                state["plot_paths"].extend(result["plot_paths"])
+        response_parts = []
         
-        if not response_parts:
-            response_parts.append("Code executed successfully with no output.")
+        if result["success"]:
+            if result["stdout"]:
+                response_parts.append(f"Output:\n{result['stdout']}")
             
-        print_tool_execution("execute_python", "SUCCESS")
-    else:
-        error_message = result["stderr"] or "Unknown error occurred during execution"
-        response_parts.append(f"Error executing Python code:\n{error_message}")
-        print_tool_execution("execute_python", "ERROR", error_message)
-    
-    return "\n\n".join(response_parts)
+            if result["plot_paths"]:
+                paths_str = "\n".join(result["plot_paths"])
+                response_parts.append(f"Generated plots:\n{paths_str}")
+                
+                # Store plot paths in the state if available
+                if state is not None:
+                    if "plot_paths" not in state:
+                        state["plot_paths"] = []
+                    state["plot_paths"].extend(result["plot_paths"])
+            
+            if not response_parts:
+                response_parts.append("Code executed successfully with no output.")
+                
+            print_tool_execution("execute_python", "SUCCESS")
+        else:
+            error_message = result["stderr"] or "Unknown error occurred during execution"
+            response_parts.append(f"Error executing Python code:\n{error_message}")
+            print_tool_execution("execute_python", "ERROR", error_message)
+        
+        return "\n\n".join(response_parts)
+    except Exception as e:
+        error_trace = traceback.format_exc()
+        print_tool_execution("execute_python", "ERROR", error_trace)
+        return f"Error in execute_python tool: {str(e)}\n{error_trace}"
 
 @tool
 def install_python_packages(
@@ -152,23 +178,28 @@ def install_python_packages(
     """
     print_tool_execution("install_python_packages", "RUNNING", f"Installing packages: {packages}")
     
-    # Parse the packages string into a list
-    package_list = [pkg.strip() for pkg in packages.split(",") if pkg.strip()]
-    
-    if not package_list:
-        print_tool_execution("install_python_packages", "ERROR", "No packages specified")
-        return "No packages specified for installation."
-    
-    result = python_executor.install_packages(package_list)
-    
-    if result["success"]:
-        success_msg = f"Successfully installed packages: {', '.join(package_list)}"
-        print_tool_execution("install_python_packages", "SUCCESS", success_msg)
-        return success_msg
-    else:
-        error_msg = f"Failed to install packages: {result.get('error', 'Unknown error')}"
-        print_tool_execution("install_python_packages", "ERROR", error_msg)
-        return error_msg
+    try:
+        # Parse the packages string into a list
+        package_list = [pkg.strip() for pkg in packages.split(",") if pkg.strip()]
+        
+        if not package_list:
+            print_tool_execution("install_python_packages", "ERROR", "No packages specified")
+            return "No packages specified for installation."
+        
+        result = python_executor.install_packages(package_list)
+        
+        if result["success"]:
+            success_msg = f"Successfully installed packages: {', '.join(package_list)}"
+            print_tool_execution("install_python_packages", "SUCCESS", success_msg)
+            return success_msg
+        else:
+            error_msg = f"Failed to install packages: {result.get('error', result.get('message', 'Unknown error'))}"
+            print_tool_execution("install_python_packages", "ERROR", error_msg)
+            return error_msg
+    except Exception as e:
+        error_trace = traceback.format_exc()
+        print_tool_execution("install_python_packages", "ERROR", error_trace)
+        return f"Error in install_python_packages tool: {str(e)}\n{error_trace}"
 
 @tool
 def ask_ai(
