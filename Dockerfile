@@ -6,6 +6,7 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV MPLCONFIGDIR=/app/.matplotlib
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -26,14 +27,17 @@ COPY . .
 # Create .dockerignore file
 RUN echo "*.csv\n*.png\n*.jpeg\n*.jpg\nscience_agent.db\n.env\nvenv/\nvenvs/\ndatasets/" > .dockerignore
 
-# Create startup script
+# Copy startup script
 COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
-# Create a non-root user and switch to it
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-RUN chown -R appuser:appuser /app
-USER appuser
+# Create necessary directories
+RUN mkdir -p /app/src/data/uploads \
+    /app/venvs \
+    /app/.matplotlib \
+    /app/temp
+
+# Note: Running as root for now - consider switching to non-root user for production security
 
 # Expose port
 EXPOSE 8000 
