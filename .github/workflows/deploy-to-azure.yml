@@ -104,17 +104,16 @@ jobs:
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --name ${{ env.APP_NAME }} \
             --settings \
+              OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
               PYTHONDONTWRITEBYTECODE=1 \
               PYTHONUNBUFFERED=1 \
               PORT=8000 \
               WEBSITES_PORT=8000 \
               PYTHON_VERSION=3.10 \
               APP_ENV=production \
-              API_URL="${{ secrets.API_URL || 'https://api.sciencebridge.com' }}" \
-              DATABASE_URL="${{ secrets.DATABASE_URL || '' }}" \
-              SECRET_KEY="${{ secrets.SECRET_KEY || '' }}" \
               WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
-              DOCKER_ENABLE_CI=true
+              DOCKER_ENABLE_CI=true \
+              SCM_DO_BUILD_DURING_DEPLOYMENT=false
           
           echo "✅ App settings configured"
 
