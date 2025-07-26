@@ -191,6 +191,13 @@ az webapp config container set \
     --name "$APP_NAME" \
     --docker-custom-image-name "$ACR_REGISTRY_URL/$IMAGE_NAME:latest" \
     --docker-registry-server-url "https://$ACR_REGISTRY_URL"
+
+# Clear any custom startup command to use Docker's ENTRYPOINT
+az webapp config set \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$APP_NAME" \
+    --startup-file ""
+
 print_success "Container configuration updated"
 
 # Step 8: Configure ACR Authentication using Service Principal
@@ -217,12 +224,12 @@ az webapp config appsettings set \
     --resource-group "$RESOURCE_GROUP" \
     --name "$APP_NAME" \
     --settings \
-        NODE_ENV=production \
-        NEXT_TELEMETRY_DISABLED=1 \
-        PORT=3000 \
-        WEBSITES_PORT=3000 \
-        NEXT_PUBLIC_APP_NAME="ScienceBridge" \
-        NEXT_PUBLIC_ENVIRONMENT="production" \
+        PYTHONDONTWRITEBYTECODE=1 \
+        PYTHONUNBUFFERED=1 \
+        PORT=8000 \
+        WEBSITES_PORT=8000 \
+        PYTHON_VERSION=3.10 \
+        APP_ENV=production \
         WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
         DOCKER_ENABLE_CI=true
 print_success "Application settings configured"

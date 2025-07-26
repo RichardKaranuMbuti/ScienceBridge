@@ -69,6 +69,12 @@ jobs:
             --docker-custom-image-name ${{ env.ACR_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             --docker-registry-server-url https://${{ env.ACR_REGISTRY_URL }}
           
+          # Clear any custom startup command to use Docker's ENTRYPOINT
+          az webapp config set \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.APP_NAME }} \
+            --startup-file ""
+          
           echo "✅ Container image configured"
 
       # Step 7: Configure container registry authentication using service principal
@@ -98,15 +104,15 @@ jobs:
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --name ${{ env.APP_NAME }} \
             --settings \
-              NODE_ENV=production \
-              NEXT_TELEMETRY_DISABLED=1 \
-              PORT=3000 \
-              WEBSITES_PORT=3000 \
-              NEXT_PUBLIC_API_URL="${{ secrets.NEXT_PUBLIC_API_URL || 'https://api.sciencebridge.com' }}" \
-              NEXT_PUBLIC_APP_NAME="ScienceBridge" \
-              NEXT_PUBLIC_ENVIRONMENT="production" \
-              NEXT_PUBLIC_FEATURES="${{ secrets.NEXT_PUBLIC_FEATURES || '' }}" \
-              NEXT_PUBLIC_ANALYTICS_ID="${{ secrets.NEXT_PUBLIC_ANALYTICS_ID || '' }}" \
+              PYTHONDONTWRITEBYTECODE=1 \
+              PYTHONUNBUFFERED=1 \
+              PORT=8000 \
+              WEBSITES_PORT=8000 \
+              PYTHON_VERSION=3.10 \
+              APP_ENV=production \
+              API_URL="${{ secrets.API_URL || 'https://api.sciencebridge.com' }}" \
+              DATABASE_URL="${{ secrets.DATABASE_URL || '' }}" \
+              SECRET_KEY="${{ secrets.SECRET_KEY || '' }}" \
               WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
               DOCKER_ENABLE_CI=true
           
@@ -157,14 +163,33 @@ jobs:
         run: |
           echo "=== Running Health Check ==="
           APP_URL=$(az webapp show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.APP_NAME }} --query defaultHostName -o tsv)
-          HEALTH_URL="https://$APP_URL/api/health"
+          HEALTH_URL="https://$APP_URL/health"
+          ROOT_URL="https://$APP_URL/"
           
           # Try to hit health endpoint if it exists
+          echo "Testing root endpoint: $ROOT_URL"
+          if curl -s -f "$ROOT_URL" > /dev/null 2>&1; then
+            echo "✅ Root endpoint is responding"
+          else
+            echo "⚠️  Root endpoint not responding yet"
+          fi
+          
+          # Try FastAPI docs endpoint
+          DOCS_URL="https://$APP_URL/docs"
+          echo "Testing docs endpoint: $DOCS_URL"
+          if curl -s -f "$DOCS_URL" > /dev/null 2>&1; then
+            echo "✅ FastAPI docs endpoint is responding"
+          else
+            echo "ℹ️  FastAPI docs endpoint not available"
+          fi
+          
+          # Try custom health endpoint
+          echo "Testing health endpoint: $HEALTH_URL"
           if curl -s -f "$HEALTH_URL" > /dev/null 2>&1; then
             echo "✅ Health check endpoint is responding"
             curl -s "$HEALTH_URL" | jq . || echo "Health check response received"
           else
-            echo "ℹ️  Health check endpoint not available or not responding"
+            echo "ℹ️  Custom health check endpoint not available"
           fi
         continue-on-error: true
 
